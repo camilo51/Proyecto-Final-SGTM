@@ -8,7 +8,9 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Body
 import retrofit2.http.Path
-
+import com.example.myapplication.data.model.LoginRequest
+import com.example.myapplication.data.model.LoginResponse
+import com.google.gson.annotations.SerializedName
 interface ApiService {
 
     // Item CRUD
@@ -50,4 +52,37 @@ interface ApiService {
 
     @DELETE("user/{id}")
     suspend fun deleteUser(@Path("id") id: String)
+
+
+    // Login
+
+    interface AuthApi {
+
+        @POST("auth/login")
+        suspend fun login(
+            @Body loginRequest: LoginRequest
+        ): LoginResponse
+
+        data class LoginRequest(
+            @SerializedName("email")
+            val email: String,
+
+            @SerializedName("password")
+            val password: String
+        )
+
+        data class LoginResponse(
+            @SerializedName("access_token")
+            val accessToken: String,
+
+            @SerializedName("refresh_token")
+            val refreshToken: String? = null,
+
+            @SerializedName("token_type")
+            val tokenType: String? = null,
+
+            @SerializedName("user")
+            val user: User? = null
+        )
+    }
 }
