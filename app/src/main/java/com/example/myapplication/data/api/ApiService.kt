@@ -9,7 +9,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Body
 import retrofit2.http.Path
 import com.example.myapplication.data.model.LoginRequest
-import com.example.myapplication.data.model.LoginResponse
+import com.example.myapplication.data.model.UserDto
 import com.google.gson.annotations.SerializedName
 interface ApiService {
 
@@ -53,14 +53,7 @@ interface ApiService {
     @DELETE("user/{id}")
     suspend fun deleteUser(@Path("id") id: String)
 
-
     // Login
-
-    interface AuthApi {
-
-        @POST("auth/login")
-        suspend fun login(
-            @Body loginRequest: LoginRequest
-        ): LoginResponse
-    }
+    @POST("auth/login")
+    suspend fun login( @Body login: LoginRequest): UserDto
 }
