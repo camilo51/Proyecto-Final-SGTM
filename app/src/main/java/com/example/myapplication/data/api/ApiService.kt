@@ -9,8 +9,8 @@ import retrofit2.http.PUT
 import retrofit2.http.Body
 import retrofit2.http.Path
 import com.example.myapplication.data.model.LoginRequest
-import com.example.myapplication.data.model.UserDto
-import com.google.gson.annotations.SerializedName
+import com.example.myapplication.data.model.LoginApiResponse
+
 interface ApiService {
 
     // Item CRUD
@@ -55,5 +55,5 @@ interface ApiService {
 
     // Login
     @POST("auth/login")
-    suspend fun login( @Body login: LoginRequest): UserDto
+    suspend fun login(@Body login: LoginRequest): LoginApiResponse
 }
