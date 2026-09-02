@@ -8,7 +8,8 @@ object RetrofitClient {
     private const val BASE_URL = "https://enginesjds.onrender.com/api/"
 
     private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        // No registrar el body porque contiene la contraseña del usuario.
+        level = HttpLoggingInterceptor.Level.BASIC
     }
 
     private val httpClient = OkHttpClient.Builder()

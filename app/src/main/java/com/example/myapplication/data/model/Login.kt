@@ -3,7 +3,7 @@ package com.example.myapplication.data.model
 import com.google.gson.annotations.SerializedName
 
 data class LoginRequest(
-    @SerializedName("username") val username: String,
+    @SerializedName("email") val email: String,
     @SerializedName("password") val password: String
 )
 
@@ -11,6 +11,16 @@ data class LoginApiResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String,
     @SerializedName("data") val data: LoginData? = null
+)
+
+data class LoginErrorResponse(
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("errors") val errors: List<LoginFieldError>? = null
+)
+
+data class LoginFieldError(
+    @SerializedName("field") val field: String? = null,
+    @SerializedName("message") val message: String? = null
 )
 
 data class LoginData(
