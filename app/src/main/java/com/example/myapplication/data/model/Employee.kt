@@ -2,7 +2,7 @@ package com.example.myapplication.data.model
 
 import com.google.gson.annotations.SerializedName
 
-data class User(
+data class Employee(
 
     @SerializedName("id")
     val id: String? = null,
@@ -13,6 +13,9 @@ data class User(
     @SerializedName("email")
     val email: String,
 
-    @SerializedName("avatar")
-    val avatar: String? = null
+    @SerializedName("phone")
+    val phone: String,
+
+    @SerializedName("role")
+    val role: String
 )
