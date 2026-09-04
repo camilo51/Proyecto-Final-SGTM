@@ -11,6 +11,14 @@ import com.example.myapplication.data.model.Order
 import com.example.myapplication.data.model.Reminder
 import com.example.myapplication.data.model.Report
 import com.example.myapplication.data.model.User
+import com.example.myapplication.data.model.ForgotPasswordRequest
+import com.example.myapplication.data.model.ForgotPasswordResponse
+import com.example.myapplication.data.model.LoginRequest
+import com.example.myapplication.data.model.LoginResponse
+import com.example.myapplication.data.model.RegisterRequest
+import com.example.myapplication.data.model.RegisterResponse
+import com.example.myapplication.data.model.ResetPasswordRequest
+import com.example.myapplication.data.model.ResetPasswordResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -19,6 +27,31 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ApiService {
+
+    // =========================
+    // AUTHENTICATION
+    // =========================
+
+    @POST("auth/login")
+    suspend fun login(
+        @Body request: LoginRequest
+    ): LoginResponse
+
+    @POST("auth/register")
+    suspend fun register(
+        @Body request: RegisterRequest
+    ): RegisterResponse
+
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(
+        @Body request: ForgotPasswordRequest
+    ): ForgotPasswordResponse
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(
+        @Body request: ResetPasswordRequest
+    ): ResetPasswordResponse
+
 
     // =========================
     // USERS

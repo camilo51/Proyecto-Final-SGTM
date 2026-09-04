@@ -1,7 +1,6 @@
 package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.api.ApiService
-import com.example.myapplication.data.model.LoginRequest
 import com.example.myapplication.data.model.User
 
 class UserRepository(
