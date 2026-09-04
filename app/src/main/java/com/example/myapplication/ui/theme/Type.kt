@@ -1,34 +1,35 @@
 package com.example.myapplication.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+private val BaseTypography = Typography()
+
+// Android uses its bundled sans-serif until an Inter .ttf is added to res/font.
+val AppTypography = BaseTypography.copy(
+    headlineLarge = BaseTypography.headlineLarge.copy(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.ExtraBold,
     ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+    headlineMedium = BaseTypography.headlineMedium.copy(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Bold,
+    ),
+    titleLarge = BaseTypography.titleLarge.copy(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Bold,
+    ),
+    titleMedium = BaseTypography.titleMedium.copy(
+        fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    ),
+    bodyMedium = BaseTypography.bodyMedium.copy(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Normal,
+    ),
+    labelLarge = BaseTypography.labelLarge.copy(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Medium,
+    ),
 )
