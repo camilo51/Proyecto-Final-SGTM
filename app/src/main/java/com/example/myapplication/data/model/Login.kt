@@ -137,7 +137,10 @@ data class UserDto(
     val email: String? = null,
 
     @SerializedName("avatar")
-    val avatar: String? = null
+    val avatar: String? = null,
+
+    @SerializedName("role")
+    val role: String? = null
 )
 
 

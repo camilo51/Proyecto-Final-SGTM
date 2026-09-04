@@ -4,6 +4,7 @@ import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.api.RetrofitClient
+import com.example.myapplication.data.model.ForgotPasswordRequest
 import com.example.myapplication.data.model.LoginErrorResponse
 import com.example.myapplication.data.model.LoginRequest
 import com.example.myapplication.data.model.UserDto
@@ -22,6 +23,7 @@ data class LoginUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
+    val isAdmin: Boolean = false,
     val user: UserDto? = null,
     val errorMessage: String? = null
 )
@@ -47,12 +49,20 @@ class LoginViewModel(
         )
     }
 
+    /**
+     * Limpia el mensaje de error actual
+     */
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
     fun login() {
         val currentState = _uiState.value
 
+        // Validaciones locales
         if (currentState.email.isBlank() || currentState.password.isBlank()) {
             _uiState.value = currentState.copy(
-                errorMessage = "Ingresa tu correo y contraseña"
+                errorMessage = "Por favor, completa todos los campos"
             )
             return
         }
@@ -67,8 +77,6 @@ class LoginViewModel(
         viewModelScope.launch {
             _uiState.value = currentState.copy(
                 isLoading = true,
-                isLoggedIn = false,
-                user = null,
                 errorMessage = null
             )
 
@@ -81,63 +89,74 @@ class LoginViewModel(
                 )
 
                 if (response.success && response.data != null) {
+                    val user = response.data.user
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true,
-                        user = response.data.user,
+                        isAdmin = user.role?.lowercase() == "admin",
+                        user = user,
                         errorMessage = null
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = response.message.ifBlank {
-                            "No se pudo iniciar sesión"
-                        }
+                        errorMessage = response.message.ifBlank { "Credenciales incorrectas" }
                     )
                 }
-            } catch (_: SocketTimeoutException) {
-                showError("El servidor tardó demasiado en responder")
-            } catch (_: IOException) {
-                showError("No hay conexión con el servidor")
-            } catch (exception: HttpException) {
-                showError(httpErrorMessage(exception))
-            } catch (_: Exception) {
-                showError("Ocurrió un error al iniciar sesión")
+            } catch (e: Exception) {
+                handleException(e)
             }
         }
     }
 
-    private fun showError(message: String) {
+    /**
+     * Lógica para recuperación de contraseña
+     */
+    fun forgotPassword(email: String) {
+        if (email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "Correo no válido")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                val response = repository.forgotPassword(ForgotPasswordRequest(email.trim()))
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = if (response.success) "Correo enviado con éxito" else response.message
+                )
+            } catch (e: Exception) {
+                handleException(e)
+            }
+        }
+    }
+
+    private fun handleException(e: Exception) {
+        val message = when (e) {
+            is SocketTimeoutException -> "El servidor tardó demasiado en responder. Intenta de nuevo."
+            is IOException -> "No hay conexión a internet. Verifica tu red."
+            is HttpException -> httpErrorMessage(e)
+            else -> "Ocurrió un error inesperado: ${e.localizedMessage}"
+        }
         _uiState.value = _uiState.value.copy(
             isLoading = false,
-            isLoggedIn = false,
-            user = null,
             errorMessage = message
         )
     }
 
     private fun httpErrorMessage(exception: HttpException): String {
         val errorBody = exception.response()?.errorBody()?.string()
-
-        if (!errorBody.isNullOrBlank()) {
-            runCatching {
-                Gson().fromJson(errorBody, LoginErrorResponse::class.java)
-            }.getOrNull()?.let { error ->
-                error.errors
-                    ?.firstOrNull { !it.message.isNullOrBlank() }
-                    ?.message
-                    ?.let { return it }
-
-                error.message
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { return it }
+        
+        return try {
+            if (!errorBody.isNullOrBlank()) {
+                val errorResponse = Gson().fromJson(errorBody, LoginErrorResponse::class.java)
+                errorResponse.message ?: errorResponse.errors?.firstOrNull()?.message ?: "Error del servidor"
+            } else {
+                "Error del servidor (${exception.code()})"
             }
-        }
-
-        return when (exception.code()) {
-            401 -> "Correo o contraseña incorrectos"
-            400 -> "Revisa los datos ingresados"
-            else -> "Error del servidor (${exception.code()})"
+        } catch (_: Exception) {
+            "Error en la respuesta del servidor (${exception.code()})"
         }
     }
 }
