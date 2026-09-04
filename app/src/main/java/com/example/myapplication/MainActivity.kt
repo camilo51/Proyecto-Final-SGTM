@@ -4,22 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.myapplication.ui.screens.AdminScreen
 import com.example.myapplication.ui.screens.LoginScreen
-import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.LoginViewModel
 
 class MainActivity : ComponentActivity() {
@@ -29,50 +17,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            MyApplicationTheme {
-                MainApp()
+            AppTheme {
+                MainScreen()
             }
         }
     }
 }
 
 @Composable
-fun MainApp() {
-    val navController = rememberNavController()
+fun MainScreen() {
     val loginViewModel: LoginViewModel = viewModel()
-    val uiState by loginViewModel.uiState.collectAsState()
-
-    NavHost(navController = navController, startDestination = "login") {
-        composable("login") {
-            LoginScreen(
-                viewModel = loginViewModel,
-                onLoginSuccess = {
-                    // Si es admin, redirigimos a la pantalla de bienvenida especial
-                    if (loginViewModel.uiState.value.isAdmin) {
-                        navController.navigate("admin") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    } else {
-                        // Aquí podrías redirigir a una pantalla de usuario normal
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    }
-                }
-            )
-        }
-        composable("admin") {
-            AdminScreen(userName = uiState.user?.name)
-        }
-        composable("home") {
-            // Pantalla básica para usuarios no admin
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Bienvenido Usuario Estándar")
-            }
-        }
-    }
+    LoginScreen(viewModel = loginViewModel)
 }
