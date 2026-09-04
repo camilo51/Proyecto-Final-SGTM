@@ -124,15 +124,5 @@ fun LoginScreen(viewModel: LoginViewModel) {
                 textAlign = TextAlign.Center
             )
         }
-
-        if (uiState.isLoggedIn) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Sesión iniciada${uiState.user?.username?.let { " como $it" } ?: ""}",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
-        }
     }
 }
