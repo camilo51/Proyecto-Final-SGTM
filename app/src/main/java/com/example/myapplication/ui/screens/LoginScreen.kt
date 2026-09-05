@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,6 +50,20 @@ fun LoginScreen(
         if (uiState.isLoggedIn) {
             onLoginSuccess()
         }
+    }
+
+    // Ventana emergente de error
+    uiState.errorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = viewModel::clearError,
+            title = { Text("Atención") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = viewModel::clearError) {
+                    Text("Entendido")
+                }
+            }
+        )
     }
 
     Surface(
@@ -161,16 +177,6 @@ fun LoginScreen(
                         } else {
                             Text("Entrar")
                         }
-                    }
-
-                    uiState.errorMessage?.let { message ->
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
                     }
                 }
             }
