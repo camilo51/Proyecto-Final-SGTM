@@ -12,24 +12,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @Composable
-fun AdminScreen(userName: String?) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "¡Bienvenido Admin!",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = userName ?: "Usuario",
-            fontSize = 18.sp,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+fun AdminScreen(
+    userName: String?,
+    navController: NavController,
+    isAdmin: Boolean
+) {
+    AppScaffold(
+        title = "Panel Admin",
+        navController = navController,
+        isAdmin = isAdmin,
+        userName = userName
+    ) { padding ->
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "¡Bienvenido Admin!",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = userName ?: "Usuario",
+                fontSize = 18.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
     }
 }

@@ -93,7 +93,7 @@ class LoginViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true,
-                        isAdmin = user.role?.lowercase() == "admin",
+                        isAdmin = user.role?.lowercase() in listOf("admin", "administrador"),
                         user = user,
                         errorMessage = null
                     )

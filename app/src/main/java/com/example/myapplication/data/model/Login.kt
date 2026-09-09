@@ -130,7 +130,7 @@ data class UserDto(
     @SerializedName("id")
     val id: String? = null,
 
-    @SerializedName("name")
+    @SerializedName("username")
     val name: String? = null,
 
     @SerializedName("email")
