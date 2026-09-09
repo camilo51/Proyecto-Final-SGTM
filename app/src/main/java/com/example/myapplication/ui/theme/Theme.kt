@@ -44,7 +44,7 @@ private val lightScheme = lightColorScheme(
 
 private val darkScheme = darkColorScheme(
     primary = Accent,
-    onPrimary = Dark950,
+    onPrimary = Color.White,
     primaryContainer = AccentHover,
     onPrimaryContainer = Color.White,
     secondary = Dark300,
@@ -60,16 +60,21 @@ private val darkScheme = darkColorScheme(
     errorContainer = Color(0xFF7F1D1D),
     onErrorContainer = DangerBackground,
     background = Dark950,
-    onBackground = Dark300,
+    onBackground = Color.White,
     surface = Dark900,
-    onSurface = Dark300,
-    surfaceVariant = Dark700,
+    onSurface = Color.White,
+    surfaceVariant = Dark800,
     onSurfaceVariant = Dark400,
     outline = Dark600,
     outlineVariant = Dark700,
     inverseSurface = BackgroundLight,
     inverseOnSurface = TextLight,
     inversePrimary = AccentHover,
+)
+
+private val loginDarkScheme = darkScheme.copy(
+    secondary = GlowPurple,
+    onSecondary = Color.White,
 )
 
 val AppShapes = Shapes(
@@ -79,15 +84,32 @@ val AppShapes = Shapes(
 )
 
 @Composable
-fun AppOutlinedTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.primary,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+fun AppOutlinedTextFieldColors(
+    focusedBorderColor: Color = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor: Color = MaterialTheme.colorScheme.outline,
+): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+    focusedBorderColor = focusedBorderColor,
+    unfocusedBorderColor = unfocusedBorderColor,
     focusedLabelColor = MaterialTheme.colorScheme.primary,
     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
     focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
     unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
     cursorColor = MaterialTheme.colorScheme.primary,
 )
+
+@Composable
+fun LoginTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = loginDarkScheme,
+        typography = AppTypography,
+        shapes = AppShapes,
+        content = content,
+    )
+}
 
 @Composable
 fun AppTheme(
