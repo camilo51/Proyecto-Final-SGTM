@@ -18,13 +18,15 @@ import androidx.navigation.NavController
 fun AdminScreen(
     userName: String?,
     navController: NavController,
-    isAdmin: Boolean
+    isAdmin: Boolean,
+    onLogout: () -> Unit = {}
 ) {
     AppScaffold(
-        title = "Panel Admin",
+        title = "Dashboard",
         navController = navController,
         isAdmin = isAdmin,
-        userName = userName
+        userName = userName,
+        onLogout = onLogout
     ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding),

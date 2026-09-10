@@ -1,16 +1,22 @@
 package com.example.myapplication.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
@@ -27,6 +33,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,14 +47,20 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,18 +78,7 @@ data class AppMenuItem(
 )
 
 val appMenuItems = listOf(
-    AppMenuItem("home", "Inicio", Icons.Filled.Home),
-    AppMenuItem("appointments", "Citas", Icons.Filled.DateRange),
-    AppMenuItem("motorcycles", "Motocicletas", Icons.Filled.Build),
-    AppMenuItem("reminders", "Recordatorios", Icons.Filled.Notifications),
-    AppMenuItem("clients", "Clientes", Icons.Filled.Person, adminOnly = true),
-    AppMenuItem("employees", "Empleados", Icons.Filled.Face, adminOnly = true),
-    AppMenuItem("brands", "Marcas", Icons.Filled.Star, adminOnly = true),
-    AppMenuItem("inventory", "Inventario", Icons.AutoMirrored.Filled.List, adminOnly = true),
-    AppMenuItem("orders", "Órdenes", Icons.Filled.ShoppingCart, adminOnly = true),
-    AppMenuItem("invoices", "Facturas", Icons.Filled.Email, adminOnly = true),
-    AppMenuItem("reports", "Reportes", Icons.Filled.Info, adminOnly = true),
-    AppMenuItem("users", "Usuarios", Icons.Filled.AccountCircle, adminOnly = true)
+    AppMenuItem("admin", "Dashboard", Icons.Filled.Home)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,6 +89,7 @@ fun AppScaffold(
     isAdmin: Boolean,
     userName: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
+    onLogout: () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -95,12 +99,24 @@ fun AppScaffold(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.background,
+                drawerContentColor = MaterialTheme.colorScheme.onBackground,
+                drawerTonalElevation = 0.dp
+            ) {
                 DrawerHeader(userName)
-                HorizontalDivider()
-                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(Modifier.height(12.dp))
 
                 Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = "NAVEGACIÓN",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                    )
+
                     appMenuItems
                         .filter { !it.adminOnly || isAdmin }
                         .forEach { item ->
@@ -116,11 +132,20 @@ fun AppScaffold(
                                         }
                                     }
                                 },
-                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                                shape = RoundedCornerShape(14.dp),
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                             )
                         }
 
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
 
                     NavigationDrawerItem(
                         label = { Text("Cerrar sesión") },
@@ -133,26 +158,53 @@ fun AppScaffold(
                         selected = false,
                         onClick = {
                             scope.launch { drawerState.close() }
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                            }
+                            onLogout()
                         },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            unselectedIconColor = MaterialTheme.colorScheme.error,
+                            unselectedTextColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                     )
                 }
             }
         }
     ) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
-                    title = { Text(title) },
-                    actions = {
-                        actions()
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Filled.Menu, contentDescription = "Abrir menú")
+                    title = {
+                        Column {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Gestión de taller",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    }
+                    },
+                    navigationIcon = {
+                        MenuButton(onClick = { scope.launch { drawerState.open() } })
+                    },
+                    actions = {
+                        NotificationButton()
+                        actions()
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        scrolledContainerColor = MaterialTheme.colorScheme.background,
+                        navigationIconContentColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                    )
                 )
             },
             content = content
@@ -161,20 +213,121 @@ fun AppScaffold(
 }
 
 @Composable
+private fun MenuButton(onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+        contentAlignment = Alignment.Center
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.Filled.Menu,
+                contentDescription = "Abrir menú",
+                modifier = Modifier.size(25.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotificationButton() {
+    var expanded by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(14.dp)
+
+    Box {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+            contentAlignment = Alignment.Center
+        ) {
+            IconButton(onClick = { expanded = true }) {
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = "Ver notificaciones"
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(
+                            text = "Notificaciones",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "No tienes novedades por ahora",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                leadingIcon = {
+                    Icon(Icons.Filled.Notifications, contentDescription = null)
+                },
+                onClick = { expanded = false }
+            )
+        }
+    }
+}
+
+@Composable
 private fun DrawerHeader(userName: String?) {
-    Column(Modifier.fillMaxWidth().padding(16.dp)) {
-        Text(
-            text = "SGTM",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 22.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Build,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(27.dp)
+                )
+            }
+            Spacer(Modifier.size(12.dp))
+            Column {
+                Text(
+                    text = "ENGINES JDS",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Gestión de taller",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         if (!userName.isNullOrBlank()) {
             Text(
-                text = userName,
-                fontSize = 14.sp,
+                text = "Sesión iniciada como $userName",
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 18.dp)
             )
         }
     }

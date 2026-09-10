@@ -25,6 +25,7 @@ data class LoginUiState(
     val isLoggedIn: Boolean = false,
     val isAdmin: Boolean = false,
     val user: UserDto? = null,
+    val accessToken: String? = null,
     val errorMessage: String? = null
 )
 
@@ -95,6 +96,7 @@ class LoginViewModel(
                         isLoggedIn = true,
                         isAdmin = user.role?.lowercase() in listOf("admin", "administrador"),
                         user = user,
+                        accessToken = response.data.accessToken,
                         errorMessage = null
                     )
                 } else {
@@ -105,6 +107,26 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 handleException(e)
+            }
+        }
+    }
+
+    /**
+     * Solicita el cierre de sesión al backend y limpia el estado local.
+     * La sesión local se elimina incluso si el servidor no está disponible,
+     * para evitar que el usuario quede dentro de la aplicación.
+     */
+    fun logout(onComplete: () -> Unit) {
+        val authorization = _uiState.value.accessToken?.let { "Bearer $it" }
+
+        viewModelScope.launch {
+            try {
+                repository.logout(authorization)
+            } catch (_: Exception) {
+                // El cierre local debe continuar aunque falle la petición remota.
+            } finally {
+                _uiState.value = LoginUiState()
+                onComplete()
             }
         }
     }

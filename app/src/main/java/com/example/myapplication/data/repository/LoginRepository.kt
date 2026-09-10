@@ -5,6 +5,7 @@ import com.example.myapplication.data.model.ForgotPasswordRequest
 import com.example.myapplication.data.model.ForgotPasswordResponse
 import com.example.myapplication.data.model.LoginRequest
 import com.example.myapplication.data.model.LoginResponse
+import com.example.myapplication.data.model.LogoutResponse
 import com.example.myapplication.data.model.RegisterRequest
 import com.example.myapplication.data.model.RegisterResponse
 import com.example.myapplication.data.model.ResetPasswordRequest
@@ -20,6 +21,14 @@ class LoginRepository(
      */
     suspend fun login(request: LoginRequest): LoginResponse {
         return apiService.login(request)
+    }
+
+    /**
+     * Cierra la sesión activa en el backend.
+     * El header se omite si el servidor no entregó un token al iniciar sesión.
+     */
+    suspend fun logout(authorization: String?): LogoutResponse {
+        return apiService.logout(authorization)
     }
 
     /**
