@@ -1,9 +1,7 @@
 package com.example.myapplication.ui.screens
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,18 +16,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.theme.LoginTheme
+import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.DashboardViewModel
 import java.util.Calendar
 import java.util.Locale
@@ -41,16 +36,13 @@ fun AdminScreen(
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val colorScheme = MaterialTheme.colorScheme
 
-    LoginTheme {
+    AppTheme(darkTheme = true) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                StaticBackground(modifier = Modifier.matchParentSize())
-
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -70,8 +62,6 @@ fun AdminScreen(
                         MetricsSection(uiState)
 
                         FinancialSummarySection(uiState.totalSales)
-
-                        ModulesSection(colorScheme)
 
                         Spacer(modifier = Modifier.height(40.dp))
                     }
@@ -101,22 +91,22 @@ private fun TopSearchBar() {
             modifier = Modifier
                 .weight(1f)
                 .height(52.dp),
-            placeholder = { Text("Buscar clientes, motos, órdenes...", fontSize = 14.sp, color = Color.White.copy(alpha = 0.5f)) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.5f)) },
+            placeholder = { Text("Buscar clientes...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
             shape = CircleShape,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             ),
             singleLine = true
         )
 
         IconButton(onClick = { /* Notificaciones */ }) {
-            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = Color.White)
+            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -159,7 +149,7 @@ private fun DashboardHeader(userName: String?) {
                 },
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -187,9 +177,9 @@ private fun ActionButton(text: String) {
     OutlinedButton(
         onClick = { /* Acción */ },
         shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
     ) {
         Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
@@ -257,10 +247,10 @@ private fun DashboardMetricCard(
 ) {
     Card(
         modifier = modifier.height(90.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -289,8 +279,8 @@ private fun DashboardMetricCard(
                 }
 
                 Column {
-                    Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                    Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+                    Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -301,9 +291,10 @@ private fun DashboardMetricCard(
 private fun FinancialSummarySection(totalSales: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -311,7 +302,7 @@ private fun FinancialSummarySection(totalSales: Double) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Resumen financiero", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Resumen financiero", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     shape = CircleShape,
@@ -337,189 +328,15 @@ private fun FinancialSummarySection(totalSales: Double) {
                     text = "$" + String.format(Locale.getDefault(), "%,.2f", totalSales),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Black,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Ventas totales acumuladas",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
     }
 }
-
-@Composable
-private fun ModulesSection(colorScheme: ColorScheme) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(
-            text = "Operaciones del Taller",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color.White
-        )
-
-        val modules = listOf(
-            ModuleItem("Inventario", Icons.Default.ShoppingCart, "Piezas y stock", colorScheme.primary),
-            ModuleItem("Clientes", Icons.Default.AccountBox, "Directorio JDS", colorScheme.primary),
-            ModuleItem("Motos", Icons.Default.Settings, "Historial clínico", colorScheme.primary),
-            ModuleItem("Facturación", Icons.Default.Edit, "Ventas y cobros", colorScheme.primary),
-            ModuleItem("Personal", Icons.Default.Person, "Equipos técnicos", colorScheme.primary),
-            ModuleItem("Reportes", Icons.Default.Star, "Rendimiento", colorScheme.primary)
-        )
-
-        // Usamos Column + Rows en lugar de LazyVerticalGrid fijo para evitar cortes en el scroll principal
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            modules.chunked(2).forEach { pair ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    pair.forEach { module ->
-                        PremiumModuleCard(module, Modifier.weight(1f))
-                    }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PremiumModuleCard(module: ModuleItem, modifier: Modifier = Modifier) {
-    val colorScheme = MaterialTheme.colorScheme
-    Card(
-        modifier = modifier
-            .height(120.dp)
-            .clickable { /* Navegación */ },
-        colors = CardDefaults.cardColors(
-            containerColor = colorScheme.surface.copy(alpha = 0.7f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(module.accentColor.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = module.icon,
-                    contentDescription = null,
-                    tint = module.accentColor,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Column {
-                Text(
-                    text = module.name,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 15.sp,
-                    color = Color.White
-                )
-                Text(
-                    text = module.description,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.4f),
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StaticBackground(modifier: Modifier = Modifier) {
-    val colorScheme = MaterialTheme.colorScheme
-    val orange = colorScheme.primary
-
-    Canvas(modifier = modifier) {
-        val maxDimension = maxOf(size.width, size.height)
-
-        fun drawGlow(
-            color: Color,
-            center: Offset,
-            radius: Float,
-            alpha: Float,
-        ) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        color.copy(alpha = alpha),
-                        color.copy(alpha = alpha * 0.35f),
-                        Color.Transparent,
-                    ),
-                    center = center,
-                    radius = radius,
-                ),
-                center = center,
-                radius = radius,
-            )
-        }
-
-        drawGlow(
-            color = orange,
-            center = Offset(size.width * 0.15f, size.height * 0.2f),
-            radius = maxDimension * 0.5f,
-            alpha = 0.18f,
-        )
-        drawGlow(
-            color = orange,
-            center = Offset(size.width * 0.85f, size.height * 0.8f),
-            radius = maxDimension * 0.45f,
-            alpha = 0.12f,
-        )
-
-        val stars = listOf(
-            Offset(0.12f, 0.18f), Offset(0.35f, 0.12f), Offset(0.55f, 0.45f),
-            Offset(0.75f, 0.25f), Offset(0.92f, 0.55f), Offset(0.25f, 0.75f),
-            Offset(0.45f, 0.95f), Offset(0.65f, 0.65f), Offset(0.85f, 0.85f),
-            Offset(0.08f, 0.88f), Offset(0.48f, 0.43f), Offset(0.88f, 0.08f)
-        )
-        stars.forEach { pos ->
-            drawCircle(
-                color = Color.White.copy(alpha = 0.2f),
-                radius = 1.2.dp.toPx(),
-                center = Offset(size.width * pos.x, size.height * pos.y)
-            )
-        }
-    }
-}
-
-@Composable
-private fun StaticLogo(size: Dp) {
-    val primary = MaterialTheme.colorScheme.primary
-    Surface(
-        modifier = Modifier.size(size),
-        shape = RoundedCornerShape(8.dp),
-        color = primary,
-        shadowElevation = 4.dp
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = "S",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.ExtraBold,
-            )
-        }
-    }
-}
-
-data class ModuleItem(
-    val name: String,
-    val icon: ImageVector,
-    val description: String,
-    val accentColor: Color
-)

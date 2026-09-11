@@ -21,6 +21,7 @@ val Dark300 = Color(0xFFCBD5E1)
 // Light palette from the web design tokens
 val SurfaceLight = Color(0xFFFFFFFF)
 val BackgroundLight = Color(0xFFF1F5F9)
+val BackgroundDark = Color(0xFF080E1C)
 val BorderLight = Color(0xFFE2E8F0)
 val TextLight = Color(0xFF0F172A)
 val MutedLight = Color(0xFF64748B)
