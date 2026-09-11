@@ -4,6 +4,42 @@
 
 Este módulo usa únicamente el proyecto Android SGTM, sus modelos existentes y `ApiService`. No depende de la página web de ENGINES JDS.
 
+## Clientes
+
+La primera pantalla de Clientes reutiliza el mismo flujo de datos:
+
+```text
+ClientsScreen
+      ↓
+ClientViewModel
+      ↓
+ClientLookup / ClientRepository
+      ↓
+ApiService
+      ↓
+RetrofitClient
+```
+
+La pantalla usa `GET /clients` y el alta usa el `POST /clients` ya existente. Ambos contratos se interpretan mediante `ApiResponse<T>` y el repositorio
+extrae `data` antes de entregarlo al ViewModel. No se agregaron endpoints nuevos. La autenticación se mantiene centralizada en `RetrofitClient`, por lo que
+el interceptor existente agrega el token Bearer cuando está disponible.
+
+El modelo Android contiene `id`, `name`, `cedula`, `email` y `phone`. La pantalla muestra los valores disponibles y permite buscar localmente por
+nombre, cédula, correo, teléfono o ID. El formulario de alta no marca ningún campo como obligatorio y deshabilita el botón mientras se procesa la
+operación. No se agregó filtro por estado porque el modelo actual no contiene un campo de estado, ni se inventó una ciudad.
+
+La UI llama `cedula` al número de identificación, pero Gson lo serializa como `document`, que es el nombre real del campo en el backend. La aplicación muestra el mensaje real del backend si
+la API configurada aplica validaciones adicionales para el alta. Después de crear, se vuelve a consultar `GET /clients`; la respuesta del `POST` no se
+inserta directamente para evitar agregar un cliente incompleto si la API devuelve solamente un acuse o una representación parcial.
+
+La ruta `clients` está disponible desde el Drawer para administradores y conserva las rutas existentes. El módulo contempla carga inicial, refresco,
+error con reintento, lista vacía y búsqueda sin resultados. La lista se pagina localmente en grupos de 10 clientes; la búsqueda reinicia la página en curso.
+`ClientViewModelTest` verifica carga exitosa, error de conexión, filtrado local, paginación, creación y actualización.
+
+La edición se abre desde el icono de editar de cada tarjeta y precarga `name`, `cedula`, `phone` y `email`. Guarda mediante `PUT /clients/{id}`,
+deshabilita el formulario mientras procesa y vuelve a consultar `GET /clients` para mostrar la información confirmada por el servidor. Un correo inválido se
+rechaza localmente y un HTTP 409 se presenta como conflicto de número de documento.
+
 ## Arquitectura
 
 ```text

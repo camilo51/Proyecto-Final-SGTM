@@ -74,7 +74,7 @@ private fun EditOrderForm(
     var total by rememberSaveable(order.id) { mutableStateOf(order.total.toString()) }
 
     val state by viewModel.uiState.collectAsState()
-    val clientOptions = state.clients.mapNotNull { client -> client.id?.let { OrderDropdownOption(it, client.name) } }
+    val clientOptions = state.clients.mapNotNull { client -> client.id?.let { OrderDropdownOption(it, client.name.orEmpty()) } }
     val motorcycleOptions = state.motorcycles.filter { it.clientId == clientId }.mapNotNull { motorcycle ->
         motorcycle.id?.let { OrderDropdownOption(it, "${motorcycle.brand} ${motorcycle.model} · ${motorcycle.plate}") }
     }

@@ -26,12 +26,14 @@ import com.example.myapplication.ui.screens.AdminScreen
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.screens.LoginScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
+import com.example.myapplication.ui.screens.clients.ClientsScreen
 import com.example.myapplication.ui.screens.orders.CreateOrderScreen
 import com.example.myapplication.ui.screens.orders.EditOrderScreen
 import com.example.myapplication.ui.screens.orders.OrderDetailScreen
 import com.example.myapplication.ui.screens.orders.OrdersListScreen
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
+import com.example.myapplication.ui.viewmodel.ClientViewModel
 import com.example.myapplication.ui.viewmodel.LoginViewModel
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
@@ -53,6 +55,7 @@ class MainActivity : ComponentActivity() {
 fun MainApp() {
     val navController = rememberNavController()
     val loginViewModel: LoginViewModel = viewModel()
+    val clientViewModel: ClientViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
     val uiState by loginViewModel.uiState.collectAsState()
 
@@ -103,6 +106,31 @@ fun MainApp() {
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 8.dp)
                 )
+            }
+        }
+        composable(AppRoutes.Clients) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Clientes",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    onLogout = {
+                        loginViewModel.logout {
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                ) { padding ->
+                    ClientsScreen(
+                        contentPadding = padding,
+                        viewModel = clientViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a clientes")
             }
         }
         composable(AppRoutes.Orders) {

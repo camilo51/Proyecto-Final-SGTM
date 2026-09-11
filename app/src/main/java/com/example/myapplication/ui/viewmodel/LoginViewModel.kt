@@ -113,6 +113,9 @@ class LoginViewModel(
                     }
                     val role = user.role?.lowercase() ?: ""
                     
+                    // Persistimos el token en memoria antes de notificar la navegación.
+                    // Así la primera petición protegida no puede salir sin Authorization.
+                    AuthTokenStore.set(accessToken)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true,
@@ -122,7 +125,6 @@ class LoginViewModel(
                         accessToken = accessToken,
                         errorMessage = null
                     )
-                    AuthTokenStore.set(accessToken)
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

@@ -3,6 +3,7 @@ package com.example.myapplication.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.api.RetrofitClient
+import com.example.myapplication.data.repository.ClientRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +36,7 @@ class DashboardViewModel : ViewModel() {
                 val api = RetrofitClient.apiService
                 
                 // Fetching all data in parallel or sequence
-                val clients = api.getClients()
+                val clients = ClientRepository(api).getClients()
                 val motorcycles = api.getMotorcycles()
                 val orders = api.getOrders()
                 val inventory = api.getInventory()

@@ -41,7 +41,7 @@ fun CreateOrderScreen(
 
     val motorcycles = state.motorcycles.filter { it.clientId == clientId }
     val clientOptions = state.clients.mapNotNull { client ->
-        client.id?.let { OrderDropdownOption(it, client.name) }
+        client.id?.let { OrderDropdownOption(it, client.name.orEmpty()) }
     }
     val motorcycleOptions = motorcycles.mapNotNull { motorcycle ->
         motorcycle.id?.let { OrderDropdownOption(it, "${motorcycle.brand} ${motorcycle.model} · ${motorcycle.plate}") }

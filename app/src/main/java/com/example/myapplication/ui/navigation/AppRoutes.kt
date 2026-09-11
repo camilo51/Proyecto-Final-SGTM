@@ -6,6 +6,7 @@ object AppRoutes {
     const val Login = "login"
     const val Admin = "admin"
     const val Home = "home"
+    const val Clients = "clients"
     const val Orders = "orders"
     const val OrderDetail = "orders/{orderId}"
     const val CreateOrder = "orders/create"
