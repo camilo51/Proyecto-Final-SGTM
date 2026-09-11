@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.viewmodel
 
+import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,7 +26,6 @@ data class LoginUiState(
     val isLoggedIn: Boolean = false,
     val isAdmin: Boolean = false,
     val user: UserDto? = null,
-    val accessToken: String? = null,
     val errorMessage: String? = null
 )
 
@@ -91,12 +91,14 @@ class LoginViewModel(
 
                 if (response.success && response.data != null) {
                     val user = response.data.user
+                    val role = user.role?.lowercase() ?: ""
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true,
-                        isAdmin = user.role?.lowercase() in listOf("admin", "administrador"),
+                        // Confiamos 100% en lo que venga de Aiven/API
+                        isAdmin = role.contains("admin") || role == "1" || role == "administrador",
                         user = user,
-                        accessToken = response.data.accessToken,
                         errorMessage = null
                     )
                 } else {
@@ -107,26 +109,6 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 handleException(e)
-            }
-        }
-    }
-
-    /**
-     * Solicita el cierre de sesión al backend y limpia el estado local.
-     * La sesión local se elimina incluso si el servidor no está disponible,
-     * para evitar que el usuario quede dentro de la aplicación.
-     */
-    fun logout(onComplete: () -> Unit) {
-        val authorization = _uiState.value.accessToken?.let { "Bearer $it" }
-
-        viewModelScope.launch {
-            try {
-                repository.logout(authorization)
-            } catch (_: Exception) {
-                // El cierre local debe continuar aunque falle la petición remota.
-            } finally {
-                _uiState.value = LoginUiState()
-                onComplete()
             }
         }
     }
@@ -155,12 +137,21 @@ class LoginViewModel(
     }
 
     private fun handleException(e: Exception) {
+        // Log interno para nosotros los desarrolladores
+        Log.e("LoginViewModel", "Error detectado durante el proceso: ${e.message}", e)
+
+        val emailContext = _uiState.value.email.ifBlank { "desconocido" }
+        
         val message = when (e) {
-            is SocketTimeoutException -> "El servidor tardó demasiado en responder. Intenta de nuevo."
-            is IOException -> "No hay conexión a internet. Verifica tu red."
-            is HttpException -> httpErrorMessage(e)
-            else -> "Ocurrió un error inesperado: ${e.localizedMessage}"
+            is SocketTimeoutException -> "El servidor tardó demasiado en responder. El usuario con el correo $emailContext no pudo ser verificado."
+            is IOException -> "No hay conexión a internet. No se pudo establecer el estado de la cuenta para $emailContext."
+            is HttpException -> {
+                val errorReason = httpErrorMessage(e)
+                "El usuario con el correo $emailContext no pudo acceder: $errorReason"
+            }
+            else -> "Ocurrió un error inesperado al intentar acceder con $emailContext. Por favor, contacta a soporte."
         }
+        
         _uiState.value = _uiState.value.copy(
             isLoading = false,
             errorMessage = message

@@ -1,29 +1,24 @@
 package com.example.myapplication.ui.screens
 
 import android.content.res.Configuration
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +50,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -69,7 +65,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
@@ -77,7 +72,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -87,6 +81,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.theme.LoginTheme
 import com.example.myapplication.ui.viewmodel.LoginUiState
@@ -479,109 +474,6 @@ private fun AnimatedBackground(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AnimatedLogo(compact: Boolean) {
-    val transition = rememberInfiniteTransition(label = "brandLogo")
-    val logoScale by transition.animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 2_400,
-                easing = FastOutSlowInEasing,
-            ),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "logoPulse",
-    )
-    val haloAlpha by transition.animateFloat(
-        initialValue = 0.22f,
-        targetValue = 0.52f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 2_400,
-                easing = FastOutSlowInEasing,
-            ),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "logoHalo",
-    )
-    val haloRotation by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 9_000,
-                easing = LinearEasing,
-            ),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "logoRotation",
-    )
-
-    val logoSize = if (compact) 48.dp else 60.dp
-    val haloSize = if (compact) 62.dp else 76.dp
-    val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
-
-    Box(
-        modifier = Modifier.size(haloSize),
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        primary.copy(alpha = haloAlpha * 0.34f),
-                        Color.Transparent,
-                    ),
-                ),
-                radius = size.minDimension / 2f,
-            )
-        }
-
-        Canvas(
-            modifier = Modifier
-                .matchParentSize()
-                .graphicsLayer { rotationZ = haloRotation },
-        ) {
-            drawCircle(
-                brush = Brush.sweepGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        primary.copy(alpha = haloAlpha),
-                        secondary.copy(alpha = haloAlpha * 0.75f),
-                        Color.Transparent,
-                    ),
-                ),
-                radius = size.minDimension / 2f - 2.dp.toPx(),
-                style = Stroke(width = 2.dp.toPx()),
-            )
-        }
-
-        Surface(
-            modifier = Modifier
-                .size(logoSize)
-                .graphicsLayer {
-                    scaleX = logoScale
-                    scaleY = logoScale
-                },
-            shape = RoundedCornerShape(if (compact) 16.dp else 20.dp),
-            color = primary,
-            shadowElevation = 8.dp,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "S",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.ExtraBold,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun BrandHeader(
     modifier: Modifier,
     compact: Boolean,
@@ -603,8 +495,6 @@ private fun BrandHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            AnimatedLogo(compact = compact)
-
             Text(
                 text = "SGTM",
                 style = if (compact) {
@@ -712,258 +602,168 @@ private fun LoginForm(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
     var emailFocused by remember { mutableStateOf(false) }
     var passwordFocused by remember { mutableStateOf(false) }
-    val emailBorderColor by animateColorAsState(
-        targetValue = if (emailFocused) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.outline
-        },
-        animationSpec = tween(durationMillis = 220),
-        label = "emailBorder",
-    )
-    val passwordBorderColor by animateColorAsState(
-        targetValue = if (passwordFocused) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.outline
-        },
-        animationSpec = tween(durationMillis = 220),
-        label = "passwordBorder",
-    )
-    val buttonInteractionSource = remember { MutableInteractionSource() }
-    val buttonPressed by buttonInteractionSource.collectIsPressedAsState()
-    val buttonScale by animateFloatAsState(
-        targetValue = if (buttonPressed) 0.975f else 1f,
-        animationSpec = spring(
-            dampingRatio = 0.72f,
-            stiffness = 520f,
-        ),
-        label = "loginButtonScale",
-    )
-    val formTransition = rememberInfiniteTransition(label = "loginFormMotion")
-    val cardTranslationY by formTransition.animateFloat(
-        initialValue = -4f,
-        targetValue = 6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 4_200,
-                easing = FastOutSlowInEasing,
-            ),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cardFloat",
-    )
-    val cardBorderAlpha by formTransition.animateFloat(
-        initialValue = 0.24f,
-        targetValue = 0.62f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 2_800,
-                easing = FastOutSlowInEasing,
-            ),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "cardBorderGlow",
-    )
-    val shimmerProgress by formTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 2_600,
-                easing = LinearEasing,
-            ),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "buttonShimmer",
-    )
     val primary = MaterialTheme.colorScheme.primary
-    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
-    val buttonHighlight = MaterialTheme.colorScheme.onPrimary
 
     Card(
-        modifier = modifier
-            .graphicsLayer {
-                translationY = cardTranslationY
-            }
-            .drawWithContent {
-                drawContent()
-                drawRoundRect(
-                    color = primary.copy(alpha = cardBorderAlpha),
-                    cornerRadius = CornerRadius(18.dp.toPx()),
-                    style = Stroke(width = 1.dp.toPx()),
-                )
-            },
+        modifier = modifier,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Text(
-                text = "Volver al inicio",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-
             Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = "Bienvenido de vuelta",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    letterSpacing = (-0.5).sp
                 )
                 Text(
-                    text = "Ingresa tus credenciales para acceder al panel",
+                    text = "Accede a tu panel administrativo para gestionar el taller.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.6f),
+                    lineHeight = 20.sp
                 )
             }
 
-            OutlinedTextField(
-                value = uiState.email,
-                onValueChange = onEmailChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { emailFocused = it.isFocused },
-                label = { Text("Correo electrónico") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                    )
-                },
-                singleLine = true,
-                enabled = !uiState.isLoading,
-                colors = AppOutlinedTextFieldColors(
-                    focusedBorderColor = emailBorderColor,
-                    unfocusedBorderColor = emailBorderColor,
-                ),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
-                ),
-            )
-
-            OutlinedTextField(
-                value = uiState.password,
-                onValueChange = onPasswordChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onFocusChanged { passwordFocused = it.isFocused },
-                label = { Text("Contraseña") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                    )
-                },
-                trailingIcon = {
-                    TextButton(
-                        onClick = { passwordVisible = !passwordVisible },
-                        enabled = !uiState.isLoading,
-                    ) {
-                        AnimatedContent(
-                            targetState = passwordVisible,
-                            transitionSpec = {
-                                fadeIn(tween(durationMillis = 160)) togetherWith
-                                    fadeOut(tween(durationMillis = 120))
-                            },
-                            label = "passwordVisibility",
-                        ) { isVisible ->
-                            Text(if (isVisible) "Ocultar" else "Mostrar")
-                        }
-                    }
-                },
-                singleLine = true,
-                enabled = !uiState.isLoading,
-                colors = AppOutlinedTextFieldColors(
-                    focusedBorderColor = passwordBorderColor,
-                    unfocusedBorderColor = passwordBorderColor,
-                ),
-                visualTransformation = if (passwordVisible) {
-                    VisualTransformation.None
-                } else {
-                    PasswordVisualTransformation()
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-            )
-
-            Text(
-                text = "¿Olvidaste tu contraseña?",
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .clickable(
-                        enabled = !uiState.isLoading,
-                        onClick = onForgotPassword,
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = uiState.email,
+                    onValueChange = onEmailChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { emailFocused = it.isFocused },
+                    label = { Text("Correo electrónico", fontSize = 14.sp) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = if (emailFocused) primary else Color.White.copy(alpha = 0.4f)
+                        )
+                    },
+                    singleLine = true,
+                    enabled = !uiState.isLoading,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primary,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
+                        focusedLabelColor = primary,
+                        unfocusedLabelColor = Color.White.copy(alpha = 0.4f),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
                     ),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
+                    ),
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = uiState.password,
+                        onValueChange = onPasswordChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { passwordFocused = it.isFocused },
+                        label = { Text("Contraseña", fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = if (passwordFocused) primary else Color.White.copy(alpha = 0.4f)
+                            )
+                        },
+                        trailingIcon = {
+                            TextButton(
+                                onClick = { passwordVisible = !passwordVisible },
+                                enabled = !uiState.isLoading,
+                            ) {
+                                Text(
+                                    text = if (passwordVisible) "Ocultar" else "Mostrar",
+                                    color = primary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        enabled = !uiState.isLoading,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primary,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
+                            focusedLabelColor = primary,
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.4f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        visualTransformation = if (passwordVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done,
+                        ),
+                    )
+
+                    Text(
+                        text = "¿Olvidaste tu contraseña?",
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clickable(
+                                enabled = !uiState.isLoading,
+                                onClick = onForgotPassword,
+                            ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
             Button(
                 onClick = onLogin,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .graphicsLayer {
-                        scaleX = buttonScale
-                        scaleY = buttonScale
-                    }
-                    .clip(MaterialTheme.shapes.medium)
-                    .drawBehind {
-                        val shimmerStart = -900f + 2_100f * shimmerProgress
-                        drawRect(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    primaryContainer,
-                                    primary,
-                                    buttonHighlight.copy(alpha = 0.48f),
-                                    primary,
-                                    primaryContainer,
-                                ),
-                                start = Offset(shimmerStart, 0f),
-                                end = Offset(shimmerStart + 900f, 320f),
-                            ),
-                        )
-                    },
+                    .height(56.dp),
                 enabled = !uiState.isLoading,
-                interactionSource = buttonInteractionSource,
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    disabledContainerColor = primary.copy(alpha = 0.78f),
-                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.84f),
+                    containerColor = primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = primary.copy(alpha = 0.5f),
+                    disabledContentColor = Color.White.copy(alpha = 0.7f),
                 ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 2.dp
+                )
             ) {
-                AnimatedContent(
-                    targetState = uiState.isLoading,
-                    transitionSpec = {
-                        fadeIn(tween(durationMillis = 180)) togetherWith
-                            fadeOut(tween(durationMillis = 120))
-                    },
-                    label = "loginLoading",
-                ) { isLoading ->
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Text("Iniciar sesión")
-                    }
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.5.dp,
+                        color = Color.White,
+                    )
+                } else {
+                    Text(
+                        text = "Entrar al Sistema",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
                 }
             }
 

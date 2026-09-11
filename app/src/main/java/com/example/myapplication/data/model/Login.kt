@@ -151,7 +151,7 @@ data class UserDto(
     @SerializedName("avatar")
     val avatar: String? = null,
 
-    @SerializedName("role")
+    @SerializedName("role", alternate = ["rol", "id_rol", "role_id"])
     val role: String? = null
 )
 
