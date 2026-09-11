@@ -90,6 +90,7 @@ fun AppScaffold(
     userName: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
     onLogout: () -> Unit = {},
+    appBar: (@Composable (onOpenDrawer: () -> Unit) -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -174,7 +175,10 @@ fun AppScaffold(
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
-                TopAppBar(
+                if (appBar != null) {
+                    appBar { scope.launch { drawerState.open() } }
+                } else {
+                    TopAppBar(
                     title = {
                         Column {
                             Text(
@@ -205,7 +209,8 @@ fun AppScaffold(
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
                         actionIconContentColor = MaterialTheme.colorScheme.onBackground
                     )
-                )
+                    )
+                }
             },
             content = content
         )
@@ -308,7 +313,7 @@ private fun DrawerHeader(userName: String?) {
             Spacer(Modifier.size(12.dp))
             Column {
                 Text(
-                    text = "ENGINES JDS",
+                    text = "SGTM",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground

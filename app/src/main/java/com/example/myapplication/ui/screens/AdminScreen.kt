@@ -24,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.theme.AppTheme
+import androidx.navigation.NavController
 import com.example.myapplication.ui.viewmodel.DashboardViewModel
 import java.util.Calendar
 import java.util.Locale
@@ -33,38 +33,46 @@ import java.util.Locale
 @Composable
 fun AdminScreen(
     userName: String?,
+    navController: NavController,
+    isAdmin: Boolean,
+    onLogout: () -> Unit,
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    AppTheme(darkTheme = true) {
+    AppScaffold(
+        title = "Dashboard",
+        navController = navController,
+        isAdmin = isAdmin,
+        userName = userName,
+        onLogout = onLogout,
+        appBar = { onOpenDrawer -> TopSearchBar(onOpenDrawer) }
+    ) { padding ->
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             color = MaterialTheme.colorScheme.background
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .windowInsetsPadding(WindowInsets.safeDrawing)
+                        .weight(1f)
+                        .padding(horizontal = 20.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(28.dp)
                 ) {
-                    TopSearchBar()
+                    DashboardHeader(userName)
 
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 20.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(28.dp)
-                    ) {
-                        DashboardHeader(userName)
+                    MetricsSection(uiState)
 
-                        MetricsSection(uiState)
+                    FinancialSummarySection(uiState.totalSales)
 
-                        FinancialSummarySection(uiState.totalSales)
-
-                        Spacer(modifier = Modifier.height(40.dp))
-                    }
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }
@@ -73,15 +81,16 @@ fun AdminScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopSearchBar() {
+private fun TopSearchBar(onOpenDrawer: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
             .padding(vertical = 12.dp, horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        IconButton(onClick = { /* Menú */ }) {
+        IconButton(onClick = onOpenDrawer) {
             Icon(Icons.Default.Menu, contentDescription = "Menú", tint = MaterialTheme.colorScheme.primary)
         }
 
