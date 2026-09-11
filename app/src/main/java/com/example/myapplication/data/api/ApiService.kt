@@ -15,6 +15,7 @@ import com.example.myapplication.data.model.ForgotPasswordRequest
 import com.example.myapplication.data.model.ForgotPasswordResponse
 import com.example.myapplication.data.model.LoginRequest
 import com.example.myapplication.data.model.LoginResponse
+import com.example.myapplication.data.model.LogoutResponse
 import com.example.myapplication.data.model.RegisterRequest
 import com.example.myapplication.data.model.RegisterResponse
 import com.example.myapplication.data.model.ResetPasswordRequest
@@ -22,6 +23,7 @@ import com.example.myapplication.data.model.ResetPasswordResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -36,6 +38,11 @@ interface ApiService {
     suspend fun login(
         @Body request: LoginRequest
     ): LoginResponse
+
+    @POST("auth/logout")
+    suspend fun logout(
+        @Header("Authorization") authorization: String?
+    ): LogoutResponse
 
     @POST("auth/register")
     suspend fun register(

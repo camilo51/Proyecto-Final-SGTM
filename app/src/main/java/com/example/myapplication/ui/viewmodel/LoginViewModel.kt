@@ -26,6 +26,7 @@ data class LoginUiState(
     val isLoggedIn: Boolean = false,
     val isAdmin: Boolean = false,
     val user: UserDto? = null,
+    val accessToken: String? = null,
     val errorMessage: String? = null
 )
 
@@ -99,6 +100,7 @@ class LoginViewModel(
                         // Confiamos 100% en lo que venga de Aiven/API
                         isAdmin = role.contains("admin") || role == "1" || role == "administrador",
                         user = user,
+                        accessToken = response.data.accessToken,
                         errorMessage = null
                     )
                 } else {
@@ -109,6 +111,24 @@ class LoginViewModel(
                 }
             } catch (e: Exception) {
                 handleException(e)
+            }
+        }
+    }
+
+    /**
+     * Notifica el cierre de sesión al servidor y siempre limpia la sesión local.
+     */
+    fun logout(onComplete: () -> Unit) {
+        val authorization = _uiState.value.accessToken?.let { "Bearer $it" }
+
+        viewModelScope.launch {
+            try {
+                repository.logout(authorization)
+            } catch (_: Exception) {
+                // La sesión local debe cerrarse aunque la API no responda.
+            } finally {
+                _uiState.value = LoginUiState()
+                onComplete()
             }
         }
     }

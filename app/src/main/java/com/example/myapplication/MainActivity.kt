@@ -63,7 +63,19 @@ fun MainApp() {
             )
         }
         composable("admin") {
-            AdminScreen(userName = uiState.user?.name)
+            AdminScreen(
+                userName = uiState.user?.name,
+                navController = navController,
+                isAdmin = uiState.isAdmin,
+                onLogout = {
+                    loginViewModel.logout {
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
         }
         composable("home") {
             Column(

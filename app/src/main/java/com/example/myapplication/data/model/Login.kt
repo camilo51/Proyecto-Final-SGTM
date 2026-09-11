@@ -27,6 +27,18 @@ data class LoginResponse(
     val data: LoginData?
 )
 
+data class LogoutResponse(
+
+    @SerializedName("success")
+    val success: Boolean,
+
+    @SerializedName("message")
+    val message: String,
+
+    @SerializedName("data")
+    val data: Any? = null
+)
+
 data class LoginData(
 
     @SerializedName("user")
@@ -130,7 +142,7 @@ data class UserDto(
     @SerializedName("id")
     val id: String? = null,
 
-    @SerializedName("name")
+    @SerializedName("username")
     val name: String? = null,
 
     @SerializedName("email")
