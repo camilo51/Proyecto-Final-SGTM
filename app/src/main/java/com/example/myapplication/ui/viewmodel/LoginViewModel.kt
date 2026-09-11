@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.viewmodel
 
+import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -90,10 +91,13 @@ class LoginViewModel(
 
                 if (response.success && response.data != null) {
                     val user = response.data.user
+                    val role = user.role?.lowercase() ?: ""
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true,
-                        isAdmin = user.role?.lowercase() == "admin",
+                        // Confiamos 100% en lo que venga de Aiven/API
+                        isAdmin = role.contains("admin") || role == "1" || role == "administrador",
                         user = user,
                         errorMessage = null
                     )
@@ -133,12 +137,21 @@ class LoginViewModel(
     }
 
     private fun handleException(e: Exception) {
+        // Log interno para nosotros los desarrolladores
+        Log.e("LoginViewModel", "Error detectado durante el proceso: ${e.message}", e)
+
+        val emailContext = _uiState.value.email.ifBlank { "desconocido" }
+        
         val message = when (e) {
-            is SocketTimeoutException -> "El servidor tardó demasiado en responder. Intenta de nuevo."
-            is IOException -> "No hay conexión a internet. Verifica tu red."
-            is HttpException -> httpErrorMessage(e)
-            else -> "Ocurrió un error inesperado: ${e.localizedMessage}"
+            is SocketTimeoutException -> "El servidor tardó demasiado en responder. El usuario con el correo $emailContext no pudo ser verificado."
+            is IOException -> "No hay conexión a internet. No se pudo establecer el estado de la cuenta para $emailContext."
+            is HttpException -> {
+                val errorReason = httpErrorMessage(e)
+                "El usuario con el correo $emailContext no pudo acceder: $errorReason"
+            }
+            else -> "Ocurrió un error inesperado al intentar acceder con $emailContext. Por favor, contacta a soporte."
         }
+        
         _uiState.value = _uiState.value.copy(
             isLoading = false,
             errorMessage = message
