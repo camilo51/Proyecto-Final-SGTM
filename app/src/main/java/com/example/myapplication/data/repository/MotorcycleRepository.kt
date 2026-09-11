@@ -5,8 +5,8 @@ import com.example.myapplication.data.model.Motorcycle
 
 class MotorcycleRepository(
     private val apiService: ApiService
-) {
-    suspend fun getMotorcycles(): List<Motorcycle> {
+) : MotorcycleLookup {
+    override suspend fun getMotorcycles(): List<Motorcycle> {
         return apiService.getMotorcycles()
     }
 

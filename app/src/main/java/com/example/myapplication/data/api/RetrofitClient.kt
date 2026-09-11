@@ -1,5 +1,6 @@
 package com.example.myapplication.data.api
 
+import com.example.myapplication.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -10,10 +11,19 @@ object RetrofitClient {
     private const val BASE_URL = "https://enginesjds.onrender.com/api/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        level = if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor.Level.BASIC
+        } else {
+            HttpLoggingInterceptor.Level.NONE
+        }
+        redactHeader("Authorization")
+        redactHeader("Cookie")
+        redactHeader("Set-Cookie")
     }
 
     private val client = OkHttpClient.Builder()
+        .addInterceptor(BearerAuthInterceptor())
+        .addInterceptor(HttpDiagnosticInterceptor())
         .addInterceptor(loggingInterceptor)
         .build()
 

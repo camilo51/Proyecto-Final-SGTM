@@ -5,9 +5,9 @@ import com.example.myapplication.data.model.Client
 
 class ClientRepository(
     private val apiService: ApiService
-) {
+) : ClientLookup {
 
-    suspend fun getClients(): List<Client> {
+    override suspend fun getClients(): List<Client> {
         return apiService.getClients()
     }
 

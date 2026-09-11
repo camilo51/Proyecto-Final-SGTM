@@ -4,7 +4,9 @@ import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.BuildConfig
 import com.example.myapplication.data.api.RetrofitClient
+import com.example.myapplication.data.api.AuthTokenStore
 import com.example.myapplication.data.model.ForgotPasswordRequest
 import com.example.myapplication.data.model.LoginErrorResponse
 import com.example.myapplication.data.model.LoginRequest
@@ -92,6 +94,23 @@ class LoginViewModel(
 
                 if (response.success && response.data != null) {
                     val user = response.data.user
+                    val accessToken = response.data.accessToken
+                    if (BuildConfig.DEBUG) {
+                        runCatching {
+                            Log.d(
+                                "LoginViewModel",
+                                "Login correcto | token recibido: ${!accessToken.isNullOrBlank()}"
+                            )
+                        }
+                    }
+                    if (accessToken.isNullOrBlank()) {
+                        AuthTokenStore.clear()
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "El servidor no devolvió una sesión válida. Inténtalo nuevamente."
+                        )
+                        return@launch
+                    }
                     val role = user.role?.lowercase() ?: ""
                     
                     _uiState.value = _uiState.value.copy(
@@ -100,9 +119,10 @@ class LoginViewModel(
                         // Confiamos 100% en lo que venga de Aiven/API
                         isAdmin = role.contains("admin") || role == "1" || role == "administrador",
                         user = user,
-                        accessToken = response.data.accessToken,
+                        accessToken = accessToken,
                         errorMessage = null
                     )
+                    AuthTokenStore.set(accessToken)
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -127,6 +147,7 @@ class LoginViewModel(
             } catch (_: Exception) {
                 // La sesión local debe cerrarse aunque la API no responda.
             } finally {
+                AuthTokenStore.clear()
                 _uiState.value = LoginUiState()
                 onComplete()
             }
