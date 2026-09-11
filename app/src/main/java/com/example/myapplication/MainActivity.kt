@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            AppTheme {
+            AppTheme(darkTheme = true) {
                 MainApp()
             }
         }
