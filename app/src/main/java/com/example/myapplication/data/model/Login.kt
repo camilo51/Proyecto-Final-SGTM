@@ -47,7 +47,7 @@ data class LoginData(
     @SerializedName(value = "access_token", alternate = ["accessToken", "token"])
     val accessToken: String? = null,
 
-    @SerializedName("refresh_token")
+    @SerializedName(value = "refresh_token", alternate = ["refreshToken"])
     val refreshToken: String? = null
 )
 

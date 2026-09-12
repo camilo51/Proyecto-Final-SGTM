@@ -46,10 +46,10 @@ class DashboardViewModel(
                     isLoading = false,
                     errorMessage = null
                 )
-            } catch (e: Exception) {
+            } catch (exception: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Error al cargar datos: ${e.message}"
+                    errorMessage = "Error al cargar datos: ${exception.message}"
                 )
             }
         }
