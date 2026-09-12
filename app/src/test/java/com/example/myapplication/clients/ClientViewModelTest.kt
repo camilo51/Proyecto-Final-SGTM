@@ -1,12 +1,14 @@
 package com.example.myapplication.clients
 
 import com.example.myapplication.data.api.ApiResponse
+import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Client
-import com.example.myapplication.data.repository.ClientDataSource
+import com.example.myapplication.data.repository.ClientRepository
 import com.example.myapplication.ui.viewmodel.ClientViewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.IOException
+import java.lang.reflect.Proxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -302,7 +304,7 @@ class ClientViewModelTest {
         )
     }
 
-    private fun viewModel(repository: ClientDataSource): ClientViewModel = ClientViewModel(
+    private fun viewModel(repository: ClientRepository): ClientViewModel = ClientViewModel(
         clientRepository = repository,
         testScope = CoroutineScope(Dispatchers.Unconfined)
     )
@@ -326,7 +328,7 @@ private class FakeClientRepository(
     private val created: Client? = null,
     private val refreshFailure: Exception? = null,
     private val updated: Client? = null
-) : ClientDataSource {
+) : ClientRepository(noOpApiService) {
     var calls = 0
     var createCalls = 0
     var updateCalls = 0
@@ -354,3 +356,10 @@ private class FakeClientRepository(
         return updated ?: client
     }
 }
+
+private val noOpApiService: ApiService = Proxy.newProxyInstance(
+    ApiService::class.java.classLoader,
+    arrayOf(ApiService::class.java)
+) { _, method, _ ->
+    error("Llamada inesperada a ApiService: ${method.name}")
+} as ApiService

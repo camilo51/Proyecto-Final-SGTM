@@ -5,11 +5,11 @@ import com.example.myapplication.data.api.ApiException
 import com.example.myapplication.data.api.ApiResponse
 import com.example.myapplication.data.model.Client
 
-class ClientRepository(
+open class ClientRepository(
     private val apiService: ApiService
-) : ClientDataSource {
+) {
 
-    override suspend fun getClients(): List<Client> {
+    open suspend fun getClients(): List<Client> {
         return apiService.getClients().requireData()
     }
 
@@ -17,11 +17,11 @@ class ClientRepository(
         return apiService.getClient(id).requireData()
     }
 
-    override suspend fun createClient(client: Client): Client {
+    open suspend fun createClient(client: Client): Client {
         return apiService.createClient(client).requireData()
     }
 
-    override suspend fun updateClient(
+    open suspend fun updateClient(
         id: String,
         client: Client
     ): Client {

@@ -8,11 +8,8 @@ import com.example.myapplication.data.api.RetrofitClient
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
-import com.example.myapplication.data.repository.ClientLookup
 import com.example.myapplication.data.repository.ClientRepository
-import com.example.myapplication.data.repository.MotorcycleLookup
 import com.example.myapplication.data.repository.MotorcycleRepository
-import com.example.myapplication.data.repository.OrderDataSource
 import com.example.myapplication.data.repository.OrderRepository
 import com.google.gson.JsonParseException
 import java.io.IOException
@@ -52,9 +49,9 @@ data class OrderUiState(
 )
 
 class OrderViewModel(
-    private val orderRepository: OrderDataSource = OrderRepository(RetrofitClient.apiService),
-    private val clientLookup: ClientLookup = ClientRepository(RetrofitClient.apiService),
-    private val motorcycleLookup: MotorcycleLookup = MotorcycleRepository(RetrofitClient.apiService),
+    private val orderRepository: OrderRepository = OrderRepository(RetrofitClient.apiService),
+    private val clientRepository: ClientRepository = ClientRepository(RetrofitClient.apiService),
+    private val motorcycleRepository: MotorcycleRepository = MotorcycleRepository(RetrofitClient.apiService),
     private val testScope: CoroutineScope? = null
 ) : ViewModel() {
 
@@ -114,8 +111,8 @@ class OrderViewModel(
             _uiState.update { it.copy(isLoadingReferences = true) }
             try {
                 val (clients, motorcycles) = coroutineScope {
-                    val clientsDeferred = async { clientLookup.getClients() }
-                    val motorcyclesDeferred = async { motorcycleLookup.getMotorcycles() }
+                    val clientsDeferred = async { clientRepository.getClients() }
+                    val motorcyclesDeferred = async { motorcycleRepository.getMotorcycles() }
                     clientsDeferred.await() to motorcyclesDeferred.await()
                 }
                 _uiState.update {

@@ -13,7 +13,7 @@ ClientsScreen
       ↓
 ClientViewModel
       ↓
-ClientLookup / ClientRepository
+ClientRepository
       ↓
 ApiService
       ↓
@@ -47,8 +47,6 @@ OrdersListScreen / CreateOrderScreen / OrderDetailScreen / EditOrderScreen
                               ↓
                          OrderViewModel
                               ↓
-                         OrderDataSource
-                              ↓
                        OrderRepository
                               ↓
                            ApiService
@@ -56,7 +54,7 @@ OrdersListScreen / CreateOrderScreen / OrderDetailScreen / EditOrderScreen
                        RetrofitClient
 ```
 
-`OrderRepository` conserva su clase y sus métodos públicos existentes. `OrderDataSource`, `ClientLookup` y `MotorcycleLookup` son interfaces pequeñas para probar el ViewModel sin red y para reemplazar implementaciones si el proyecto crece.
+`OrderRepository` es la única capa entre `OrderViewModel` y `ApiService`; conserva las operaciones de listado, detalle, creación, actualización y eliminación. Las pruebas usan dobles de los repositorios existentes, sin una capa adicional de datos.
 
 ## Contrato actual de Android
 

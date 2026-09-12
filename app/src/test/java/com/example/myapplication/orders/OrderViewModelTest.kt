@@ -1,13 +1,15 @@
 package com.example.myapplication.orders
 
+import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
-import com.example.myapplication.data.repository.ClientLookup
-import com.example.myapplication.data.repository.MotorcycleLookup
-import com.example.myapplication.data.repository.OrderDataSource
+import com.example.myapplication.data.repository.ClientRepository
+import com.example.myapplication.data.repository.MotorcycleRepository
+import com.example.myapplication.data.repository.OrderRepository
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import java.io.IOException
+import java.lang.reflect.Proxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -17,7 +19,7 @@ import org.junit.Test
 class OrderViewModelTest {
     @Test
     fun loadOrders_success_updatesStateAndRelations() {
-        val source = FakeOrderSource(listOf(order("1", "Pendiente")))
+        val source = FakeOrderRepository(listOf(order("1", "Pendiente")))
         val viewModel = viewModel(source)
 
         viewModel.loadOrders()
@@ -30,7 +32,7 @@ class OrderViewModelTest {
 
     @Test
     fun loadOrders_failure_exposesFriendlyError() {
-        val viewModel = viewModel(FakeOrderSource(failure = IOException()))
+        val viewModel = viewModel(FakeOrderRepository(failure = IOException()))
 
         viewModel.loadOrders()
 
@@ -40,7 +42,7 @@ class OrderViewModelTest {
 
     @Test
     fun searchAndStatusFilter_areAppliedLocally() {
-        val source = FakeOrderSource(
+        val source = FakeOrderRepository(
             listOf(
                 order("1", "Pendiente", description = "Cambio de aceite"),
                 order("2", "Entregada", description = "Freno trasero").copy(motorcycleId = "21")
@@ -63,7 +65,7 @@ class OrderViewModelTest {
 
     @Test
     fun createOrder_successDisablesDuplicatePathAndUpdatesList() {
-        val source = FakeOrderSource(created = order("8", "Pendiente"))
+        val source = FakeOrderRepository(created = order("8", "Pendiente"))
         val viewModel = viewModel(source)
 
         viewModel.createOrder("10", "20", "Revisión general", "Pendiente", "45000")
@@ -75,7 +77,7 @@ class OrderViewModelTest {
 
     @Test
     fun invalidCreate_isRejectedBeforeRepositoryCall() {
-        val source = FakeOrderSource()
+        val source = FakeOrderRepository()
         val viewModel = viewModel(source)
 
         viewModel.createOrder("", "20", "Descripción", "Pendiente", "100")
@@ -84,10 +86,10 @@ class OrderViewModelTest {
         assertEquals("Selecciona un cliente", viewModel.uiState.value.operationMessage)
     }
 
-    private fun viewModel(source: FakeOrderSource): OrderViewModel = OrderViewModel(
+    private fun viewModel(source: FakeOrderRepository): OrderViewModel = OrderViewModel(
         orderRepository = source,
-        clientLookup = FakeClientLookup,
-        motorcycleLookup = FakeMotorcycleLookup,
+        clientRepository = FakeClientRepository,
+        motorcycleRepository = FakeMotorcycleRepository,
         testScope = CoroutineScope(Dispatchers.Unconfined)
     )
 
@@ -101,11 +103,11 @@ class OrderViewModelTest {
     )
 }
 
-private class FakeOrderSource(
+private class FakeOrderRepository(
     private val values: List<Order> = emptyList(),
     private val failure: Exception? = null,
     private val created: Order? = null
-) : OrderDataSource {
+) : OrderRepository(noOpApiService) {
     var createCalls = 0
 
     override suspend fun getOrders(): List<Order> {
@@ -121,17 +123,25 @@ private class FakeOrderSource(
     }
 
     override suspend fun updateOrder(id: String, order: Order): Order = order.copy(id = id)
+
     override suspend fun deleteOrder(id: String) = Unit
 }
 
-private object FakeClientLookup : ClientLookup {
+private object FakeClientRepository : ClientRepository(noOpApiService) {
     override suspend fun getClients(): List<Client> = listOf(
         Client(id = "10", name = "Cliente de prueba", email = "test@example.com", phone = "3000000000")
     )
 }
 
-private object FakeMotorcycleLookup : MotorcycleLookup {
+private object FakeMotorcycleRepository : MotorcycleRepository(noOpApiService) {
     override suspend fun getMotorcycles(): List<Motorcycle> = listOf(
         Motorcycle(id = "20", brand = "Honda", model = "CB", year = 2024, plate = "ABC123", clientId = "10")
     )
 }
+
+private val noOpApiService: ApiService = Proxy.newProxyInstance(
+    ApiService::class.java.classLoader,
+    arrayOf(ApiService::class.java)
+) { _, method, _ ->
+    error("Llamada inesperada a ApiService: ${method.name}")
+} as ApiService

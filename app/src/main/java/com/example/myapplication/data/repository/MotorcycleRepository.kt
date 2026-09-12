@@ -3,10 +3,10 @@ package com.example.myapplication.data.repository
 import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Motorcycle
 
-class MotorcycleRepository(
+open class MotorcycleRepository(
     private val apiService: ApiService
-) : MotorcycleLookup {
-    override suspend fun getMotorcycles(): List<Motorcycle> {
+) {
+    open suspend fun getMotorcycles(): List<Motorcycle> {
         return apiService.getMotorcycles()
     }
 

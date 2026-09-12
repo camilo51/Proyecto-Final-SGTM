@@ -7,7 +7,6 @@ import com.example.myapplication.BuildConfig
 import com.example.myapplication.data.api.ApiException
 import com.example.myapplication.data.api.RetrofitClient
 import com.example.myapplication.data.model.Client
-import com.example.myapplication.data.repository.ClientDataSource
 import com.example.myapplication.data.repository.ClientRepository
 import com.google.gson.JsonParseException
 import java.io.IOException
@@ -45,7 +44,7 @@ data class ClientUiState(
 }
 
 class ClientViewModel(
-    private val clientRepository: ClientDataSource = ClientRepository(RetrofitClient.apiService),
+    private val clientRepository: ClientRepository = ClientRepository(RetrofitClient.apiService),
     private val testScope: CoroutineScope? = null
 ) : ViewModel() {
 
