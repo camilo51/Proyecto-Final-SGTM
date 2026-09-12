@@ -4,7 +4,6 @@ import com.example.myapplication.data.model.Appointment
 import com.example.myapplication.data.model.Brand
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Employee
-import com.example.myapplication.data.model.Inventory
 import com.example.myapplication.data.model.Invoice
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
@@ -20,13 +19,28 @@ import com.example.myapplication.data.model.RegisterRequest
 import com.example.myapplication.data.model.RegisterResponse
 import com.example.myapplication.data.model.ResetPasswordRequest
 import com.example.myapplication.data.model.ResetPasswordResponse
+import com.example.myapplication.data.model.common.ApiResponse
+import com.example.myapplication.data.model.common.PaginatedApiResponse
+import com.example.myapplication.data.model.inventory.CreateInventoryRequest
+import com.example.myapplication.data.model.inventory.DeleteInventoryRequest
+import com.example.myapplication.data.model.inventory.InventoryAlertDto
+import com.example.myapplication.data.model.inventory.InventoryDto
+import com.example.myapplication.data.model.inventory.InventoryMovementDto
+import com.example.myapplication.data.model.inventory.StockAdjustmentRequest
+import com.example.myapplication.data.model.inventory.StockEntryRequest
+import com.example.myapplication.data.model.inventory.StockMovementResultDto
+import com.example.myapplication.data.model.inventory.StockOutputRequest
+import com.example.myapplication.data.model.inventory.UpdateInventoryRequest
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.HTTP
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ApiService {
 
@@ -234,28 +248,73 @@ interface ApiService {
     // =========================
 
     @GET("inventory")
-    suspend fun getInventory(): List<Inventory>
+    suspend fun getInventoryPage(
+        @Query("search") search: String?,
+        @Query("category") category: String?,
+        @Query("brand") brand: String?,
+        @Query("status") status: String?,
+        @Query("sort") sort: String,
+        @Query("page") page: Int,
+        @Query("limit") limit: Int
+    ): Response<PaginatedApiResponse<InventoryDto>>
+
+    @GET("inventory/categories")
+    suspend fun getInventoryCategories(): Response<ApiResponse<List<String>>>
+
+    @GET("inventory/brands")
+    suspend fun getInventoryBrands(): Response<ApiResponse<List<String>>>
+
+    @GET("inventory/alerts")
+    suspend fun getInventoryAlerts(
+        @Query("status") status: String? = null
+    ): Response<ApiResponse<List<InventoryAlertDto>>>
 
     @GET("inventory/{id}")
-    suspend fun getInventoryItem(
-        @Path("id") id: String
-    ): Inventory
+    suspend fun getInventoryDetail(
+        @Path("id") id: Long
+    ): Response<ApiResponse<InventoryDto>>
+
+    @GET("inventory/{id}/movements")
+    suspend fun getInventoryMovements(
+        @Path("id") id: Long,
+        @Query("page") page: Int,
+        @Query("limit") limit: Int
+    ): Response<PaginatedApiResponse<InventoryMovementDto>>
 
     @POST("inventory")
-    suspend fun createInventoryItem(
-        @Body inventory: Inventory
-    ): Inventory
+    suspend fun createInventory(
+        @Body request: CreateInventoryRequest
+    ): Response<ApiResponse<InventoryDto>>
 
     @PUT("inventory/{id}")
-    suspend fun updateInventoryItem(
-        @Path("id") id: String,
-        @Body inventory: Inventory
-    ): Inventory
+    suspend fun updateInventory(
+        @Path("id") id: Long,
+        @Body request: UpdateInventoryRequest
+    ): Response<ApiResponse<InventoryDto>>
 
-    @DELETE("inventory/{id}")
-    suspend fun deleteInventoryItem(
-        @Path("id") id: String
-    )
+    @HTTP(method = "DELETE", path = "inventory/{id}", hasBody = true)
+    suspend fun deleteInventory(
+        @Path("id") id: Long,
+        @Body request: DeleteInventoryRequest
+    ): Response<Unit>
+
+    @POST("inventory/{id}/entry")
+    suspend fun registerInventoryEntry(
+        @Path("id") id: Long,
+        @Body request: StockEntryRequest
+    ): Response<ApiResponse<StockMovementResultDto>>
+
+    @POST("inventory/{id}/output")
+    suspend fun registerInventoryOutput(
+        @Path("id") id: Long,
+        @Body request: StockOutputRequest
+    ): Response<ApiResponse<StockMovementResultDto>>
+
+    @POST("inventory/{id}/adjustment")
+    suspend fun registerInventoryAdjustment(
+        @Path("id") id: Long,
+        @Body request: StockAdjustmentRequest
+    ): Response<ApiResponse<StockMovementResultDto>>
 
 
     // =========================

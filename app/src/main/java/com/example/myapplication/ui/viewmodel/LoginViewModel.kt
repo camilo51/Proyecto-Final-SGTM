@@ -93,12 +93,12 @@ class LoginViewModel(
                 if (response.success && response.data != null) {
                     val user = response.data.user
                     val role = user.role?.lowercase() ?: ""
-                    
+                    RetrofitClient.setAuthorizationToken(response.data.accessToken)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true,
                         // Confiamos 100% en lo que venga de Aiven/API
-                        isAdmin = role.contains("admin") || role == "1" || role == "administrador",
+                        isAdmin = role == "admin" || role == "administrador" || role == "1",
                         user = user,
                         accessToken = response.data.accessToken,
                         errorMessage = null
@@ -127,6 +127,7 @@ class LoginViewModel(
             } catch (_: Exception) {
                 // La sesión local debe cerrarse aunque la API no responda.
             } finally {
+                RetrofitClient.setAuthorizationToken(null)
                 _uiState.value = LoginUiState()
                 onComplete()
             }

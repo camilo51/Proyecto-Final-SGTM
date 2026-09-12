@@ -78,7 +78,8 @@ data class AppMenuItem(
 )
 
 val appMenuItems = listOf(
-    AppMenuItem("admin", "Dashboard", Icons.Filled.Home)
+    AppMenuItem("admin", "Dashboard", Icons.Filled.Home),
+    AppMenuItem("inventory", "Inventario", Icons.Filled.ShoppingCart, adminOnly = true)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

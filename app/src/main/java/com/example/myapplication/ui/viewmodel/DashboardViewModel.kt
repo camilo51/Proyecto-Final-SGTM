@@ -2,7 +2,9 @@ package com.example.myapplication.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.data.api.RetrofitClient
+import com.example.myapplication.data.model.common.NetworkResult
+import com.example.myapplication.data.repository.inventory.InventoryRepository
+import com.example.myapplication.data.repository.inventory.InventoryRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +21,9 @@ data class DashboardUiState(
     val errorMessage: String? = null
 )
 
-class DashboardViewModel : ViewModel() {
+class DashboardViewModel(
+    private val inventoryRepository: InventoryRepository = InventoryRepositoryImpl()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -32,23 +36,15 @@ class DashboardViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val api = RetrofitClient.apiService
-                
-                // Fetching all data in parallel or sequence
-                val clients = api.getClients()
-                val motorcycles = api.getMotorcycles()
-                val orders = api.getOrders()
-                val inventory = api.getInventory()
-                val invoices = api.getInvoices()
+                val inventoryAlerts = when (val result = inventoryRepository.getAlerts()) {
+                    is NetworkResult.Success -> result.data
+                    is NetworkResult.Error -> throw IllegalStateException(result.message)
+                }
 
-                _uiState.value = DashboardUiState(
-                    totalClients = clients.size,
-                    totalMotos = motorcycles.size,
-                    activeOrders = orders.count { it.status.lowercase() == "activa" || it.status.lowercase() == "pendiente" },
-                    deliveredOrders = orders.count { it.status.lowercase() == "entregada" || it.status.lowercase() == "finalizada" },
-                    lowStockCount = inventory.count { it.quantity < 5 },
-                    totalSales = invoices.sumOf { it.total },
-                    isLoading = false
+                _uiState.value = _uiState.value.copy(
+                    lowStockCount = inventoryAlerts.lowStockCount,
+                    isLoading = false,
+                    errorMessage = null
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
