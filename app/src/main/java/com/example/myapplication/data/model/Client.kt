@@ -8,14 +8,15 @@ data class Client(
     val id: String? = null,
 
     @SerializedName("name")
-    val name: String,
+    val name: String = "",
+
+    // La UI conserva el nombre "cedula", pero el backend usa "document".
+    @SerializedName("document")
+    val cedula: String? = null,
 
     @SerializedName("email")
-    val email: String,
+    val email: String = "",
 
     @SerializedName("phone")
-    val phone: String,
-
-    @SerializedName("address")
-    val address: String? = null
+    val phone: String = ""
 )

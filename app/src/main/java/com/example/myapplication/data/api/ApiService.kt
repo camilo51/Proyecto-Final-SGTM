@@ -94,23 +94,23 @@ interface ApiService {
     // =========================
 
     @GET("clients")
-    suspend fun getClients(): List<Client>
+    suspend fun getClients(): ApiResponse<List<Client>>
 
     @GET("clients/{id}")
     suspend fun getClient(
         @Path("id") id: String
-    ): Client
+    ): ApiResponse<Client>
 
     @POST("clients")
     suspend fun createClient(
         @Body client: Client
-    ): Client
+    ): ApiResponse<Client>
 
     @PUT("clients/{id}")
     suspend fun updateClient(
         @Path("id") id: String,
         @Body client: Client
-    ): Client
+    ): ApiResponse<Client>
 
     @DELETE("clients/{id}")
     suspend fun deleteClient(
