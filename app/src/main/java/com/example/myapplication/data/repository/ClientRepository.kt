@@ -1,9 +1,8 @@
 package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.api.ApiService
-import com.example.myapplication.data.api.ApiException
-import com.example.myapplication.data.api.ApiResponse
 import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.common.requireData
 
 open class ClientRepository(
     private val apiService: ApiService
@@ -30,14 +29,5 @@ open class ClientRepository(
 
     suspend fun deleteClient(id: String) {
         apiService.deleteClient(id)
-    }
-
-    private fun <T> ApiResponse<T>.requireData(): T {
-        if (success && data != null) return data
-
-        val errorMessage = message
-            .ifBlank { errors?.firstOrNull()?.message.orEmpty() }
-            .ifBlank { "La API no devolvió datos válidos" }
-        throw ApiException(message = errorMessage)
     }
 }

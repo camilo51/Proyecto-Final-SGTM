@@ -29,6 +29,20 @@ data class ApiError(
     @SerializedName("message") val message: String? = null
 )
 
+class ApiException(
+    val statusCode: Int? = null,
+    override val message: String
+) : Exception(message)
+
+fun <T> ApiResponse<T>.requireData(): T {
+    if (success && data != null) return data
+
+    val errorMessage = message
+        .ifBlank { errors.firstOrNull()?.message.orEmpty() }
+        .ifBlank { "La API no devolvió datos válidos" }
+    throw ApiException(message = errorMessage)
+}
+
 sealed interface NetworkResult<out T> {
     data class Success<T>(val data: T, val message: String = "") : NetworkResult<T>
     data class Error(

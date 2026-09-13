@@ -322,23 +322,23 @@ interface ApiService {
     // =========================
 
     @GET("orders")
-    suspend fun getOrders(): List<Order>
+    suspend fun getOrders(): ApiResponse<List<Order>>
 
     @GET("orders/{id}")
     suspend fun getOrder(
         @Path("id") id: String
-    ): Order
+    ): ApiResponse<Order>
 
     @POST("orders")
     suspend fun createOrder(
         @Body order: Order
-    ): Order
+    ): ApiResponse<Order>
 
     @PUT("orders/{id}")
     suspend fun updateOrder(
         @Path("id") id: String,
         @Body order: Order
-    ): Order
+    ): ApiResponse<Order>
 
     @DELETE("orders/{id}")
     suspend fun deleteOrder(
