@@ -55,9 +55,7 @@ fun AdminScreen(
             color = MaterialTheme.colorScheme.background
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.navigationBars)
+                modifier = Modifier.fillMaxSize()
             ) {
                 Column(
                     modifier = Modifier
@@ -71,8 +69,6 @@ fun AdminScreen(
                     MetricsSection(uiState)
 
                     FinancialSummarySection(uiState.totalSales)
-
-                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }

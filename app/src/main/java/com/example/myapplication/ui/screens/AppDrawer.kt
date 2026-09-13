@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
 import kotlinx.coroutines.launch
 
@@ -78,7 +79,10 @@ data class AppMenuItem(
 )
 
 val appMenuItems = listOf(
-    AppMenuItem("admin", "Dashboard", Icons.Filled.Home)
+    AppMenuItem(AppRoutes.Admin, "Dashboard", Icons.Filled.Home),
+    AppMenuItem(AppRoutes.Clients, "Clientes", Icons.Filled.Person, adminOnly = true),
+    AppMenuItem(AppRoutes.Orders, "Órdenes de trabajo", Icons.AutoMirrored.Filled.List, adminOnly = true),
+    AppMenuItem(AppRoutes.Inventory, "Inventario", Icons.Filled.ShoppingCart, adminOnly = true)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
