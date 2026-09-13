@@ -9,7 +9,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 object RetrofitClient {
 
     private const val BASE_URL = "https://enginesjds.onrender.com/api/"
-
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = if (BuildConfig.DEBUG) {
             HttpLoggingInterceptor.Level.BASIC
@@ -27,13 +26,20 @@ object RetrofitClient {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    val apiService: ApiService by lazy {
+    fun setAuthorizationToken(token: String?) {
+        AuthTokenStore.set(token)
+    }
 
+    private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+    }
+
+    val apiService: ApiService by lazy {
+        retrofit
             .create(ApiService::class.java)
     }
 }

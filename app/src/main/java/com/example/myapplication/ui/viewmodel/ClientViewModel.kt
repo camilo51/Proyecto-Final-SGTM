@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.util.Log
 import com.example.myapplication.BuildConfig
-import com.example.myapplication.data.api.ApiException
+import com.example.myapplication.data.model.common.ApiException
 import com.example.myapplication.data.api.RetrofitClient
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.repository.ClientRepository

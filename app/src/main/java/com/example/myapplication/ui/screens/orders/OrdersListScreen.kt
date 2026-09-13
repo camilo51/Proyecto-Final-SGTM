@@ -232,7 +232,7 @@ private fun OrdersHeader(
         ) {
             Button(
                 onClick = onCreateOrder,
-                modifier = Modifier.weight(2f),
+                modifier = Modifier.weight(1f),
                 enabled = !isSaving
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))

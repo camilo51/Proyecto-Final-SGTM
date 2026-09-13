@@ -81,7 +81,8 @@ data class AppMenuItem(
 val appMenuItems = listOf(
     AppMenuItem(AppRoutes.Admin, "Dashboard", Icons.Filled.Home),
     AppMenuItem(AppRoutes.Clients, "Clientes", Icons.Filled.Person, adminOnly = true),
-    AppMenuItem(AppRoutes.Orders, "Órdenes de trabajo", Icons.AutoMirrored.Filled.List, adminOnly = true)
+    AppMenuItem(AppRoutes.Orders, "Órdenes de trabajo", Icons.AutoMirrored.Filled.List, adminOnly = true),
+    AppMenuItem(AppRoutes.Inventory, "Inventario", Icons.Filled.ShoppingCart, adminOnly = true)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

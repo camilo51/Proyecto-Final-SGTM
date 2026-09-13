@@ -112,7 +112,7 @@ class LoginViewModel(
                         return@launch
                     }
                     val role = user.role?.lowercase() ?: ""
-                    
+
                     // Persistimos el token en memoria antes de notificar la navegación.
                     // Así la primera petición protegida no puede salir sin Authorization.
                     AuthTokenStore.set(accessToken)
@@ -120,7 +120,7 @@ class LoginViewModel(
                         isLoading = false,
                         isLoggedIn = true,
                         // Confiamos 100% en lo que venga de Aiven/API
-                        isAdmin = role.contains("admin") || role == "1" || role == "administrador",
+                        isAdmin = role == "admin" || role == "administrador" || role == "1",
                         user = user,
                         accessToken = accessToken,
                         errorMessage = null
