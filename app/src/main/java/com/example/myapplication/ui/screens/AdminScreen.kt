@@ -61,7 +61,7 @@ fun AdminScreen(
 
                         MetricsSection(uiState)
 
-                        FinancialSummarySection(uiState.totalSales)
+                        FinancialSummarySection(uiState)
 
                         Spacer(modifier = Modifier.height(40.dp))
                     }
@@ -288,7 +288,8 @@ private fun DashboardMetricCard(
 }
 
 @Composable
-private fun FinancialSummarySection(totalSales: Double) {
+private fun FinancialSummarySection(uiState: com.example.myapplication.ui.viewmodel.DashboardUiState) {
+    val totalSales = uiState.totalSales
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -318,7 +319,7 @@ private fun FinancialSummarySection(totalSales: Double) {
                 }
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -337,6 +338,37 @@ private fun FinancialSummarySection(totalSales: Double) {
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                PeriodicSaleItem("Día", uiState.dailySales)
+                PeriodicSaleItem("Quincena", uiState.fortnightlySales)
+                PeriodicSaleItem("Mensual", uiState.monthlySales)
+                PeriodicSaleItem("Anual", uiState.yearlySales)
+            }
         }
+    }
+}
+
+@Composable
+private fun PeriodicSaleItem(label: String, value: Double) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "$" + String.format(Locale.getDefault(), "%,.0f", value),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
