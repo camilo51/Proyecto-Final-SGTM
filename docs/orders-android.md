@@ -107,7 +107,7 @@ La edición usa `PUT /orders/{id}` y sólo modifica campos que existen en `Order
 
 ## Autenticación y logging
 
-El login conserva el access token en memoria mediante `AuthTokenStore`. `BearerAuthInterceptor` lo agrega a las rutas protegidas. El logging es `BASIC` en Debug y `NONE` en Release, con headers sensibles redactados.
+`RetrofitClient` conserva el access token únicamente en memoria y su interceptor interno lo agrega a las rutas protegidas. El logging es `BASIC` en Debug y `NONE` en Release, con headers sensibles redactados.
 
 No se persisten JWT, contraseñas ni cookies. No se falsifican headers `Origin` o `Referer`.
 

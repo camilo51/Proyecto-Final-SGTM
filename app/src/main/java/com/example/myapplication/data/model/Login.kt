@@ -132,6 +132,15 @@ data class ResetPasswordResponse(
     val message: String
 )
 
+data class ChangePasswordRequest(
+
+    @SerializedName("current_password")
+    val currentPassword: String,
+
+    @SerializedName("new_password")
+    val newPassword: String
+)
+
 
 // =========================
 // USUARIO DEVUELTO POR LOGIN

@@ -28,6 +28,7 @@ import com.example.myapplication.data.api.RetrofitClient
 import com.example.myapplication.ui.screens.AdminScreen
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.screens.LoginScreen
+import com.example.myapplication.ui.screens.ProfileScreen
 import com.example.myapplication.ui.screens.inventory.CreateInventoryScreen
 import com.example.myapplication.ui.screens.inventory.EditInventoryScreen
 import com.example.myapplication.ui.screens.inventory.InventoryDetailScreen
@@ -49,6 +50,7 @@ import com.example.myapplication.ui.viewmodel.ClientViewModel
 import com.example.myapplication.ui.viewmodel.LoginViewModel
 import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
 import com.example.myapplication.ui.viewmodel.OrderViewModel
+import com.example.myapplication.ui.viewmodel.ProfileViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -74,6 +76,7 @@ fun MainApp() {
     val clientViewModel: ClientViewModel = viewModel()
     val motorcycleViewModel: MotorcycleViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
     val uiState by loginViewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.accessToken) {
@@ -86,6 +89,12 @@ fun MainApp() {
                 popUpTo(0) { inclusive = true }
                 launchSingleTop = true
             }
+        }
+    }
+
+    val onOpenProfile: () -> Unit = {
+        navController.navigate(AppRoutes.Profile) {
+            launchSingleTop = true
         }
     }
 
@@ -109,6 +118,8 @@ fun MainApp() {
         composable("admin") {
             AdminScreen(
                 userName = uiState.user?.name,
+                currentUser = uiState.user,
+                onOpenProfile = onOpenProfile,
                 navController = navController,
                 isAdmin = uiState.isAdmin,
                 onLogout = onLogout
@@ -116,25 +127,51 @@ fun MainApp() {
         }
         composable("inventory") {
             AdminOnlyRoute(uiState.isAdmin, navController) {
-                InventoryListScreen(navController, uiState.user?.name, onLogout)
+                InventoryListScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile
+                )
             }
         }
         composable("inventory/create") {
             AdminOnlyRoute(uiState.isAdmin, navController) {
-                CreateInventoryScreen(navController, uiState.user?.name, onLogout)
+                CreateInventoryScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile
+                )
             }
         }
         composable("inventory/detail/{id}") { entry ->
             entry.arguments?.getString("id")?.toLongOrNull()?.let { id ->
                 AdminOnlyRoute(uiState.isAdmin, navController) {
-                    InventoryDetailScreen(id, navController, uiState.user?.name, onLogout)
+                    InventoryDetailScreen(
+                        id = id,
+                        navController = navController,
+                        userName = uiState.user?.name,
+                        onLogout = onLogout,
+                        currentUser = uiState.user,
+                        onOpenProfile = onOpenProfile
+                    )
                 }
             }
         }
         composable("inventory/edit/{id}") { entry ->
             entry.arguments?.getString("id")?.toLongOrNull()?.let { id ->
                 AdminOnlyRoute(uiState.isAdmin, navController) {
-                    EditInventoryScreen(id, navController, uiState.user?.name, onLogout)
+                    EditInventoryScreen(
+                        id = id,
+                        navController = navController,
+                        userName = uiState.user?.name,
+                        onLogout = onLogout,
+                        currentUser = uiState.user,
+                        onOpenProfile = onOpenProfile
+                    )
                 }
             }
         }
@@ -143,7 +180,15 @@ fun MainApp() {
             val action = entry.arguments?.getString("action") ?: "history"
             if (id != null) {
                 AdminOnlyRoute(uiState.isAdmin, navController) {
-                    InventoryMovementsScreen(id, action, navController, uiState.user?.name, onLogout)
+                    InventoryMovementsScreen(
+                        id = id,
+                        initialAction = action,
+                        navController = navController,
+                        userName = uiState.user?.name,
+                        onLogout = onLogout,
+                        currentUser = uiState.user,
+                        onOpenProfile = onOpenProfile
+                    )
                 }
             }
         }
@@ -164,6 +209,29 @@ fun MainApp() {
                 )
             }
         }
+        composable(AppRoutes.Profile) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Mi Perfil",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    ProfileScreen(
+                        contentPadding = padding,
+                        sessionUser = uiState.user,
+                        onUserUpdated = loginViewModel::updateUser,
+                        onBack = navController::popBackStack,
+                        viewModel = profileViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder al perfil")
+            }
+        }
         composable(AppRoutes.Clients) {
             if (uiState.isAdmin) {
                 AppScaffold(
@@ -171,6 +239,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {
@@ -196,6 +266,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {
@@ -224,6 +296,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = onLogout
                 ) { padding ->
                     MotorcyclesScreen(
@@ -244,6 +318,8 @@ fun MainApp() {
                     navController = navController,
                     userName = uiState.user?.name,
                     onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onCreated = { id ->
                         navController.navigate(AppRoutes.motorcycleDetail(id)) {
                             popUpTo(AppRoutes.CreateMotorcycle) { inclusive = true }
@@ -266,6 +342,8 @@ fun MainApp() {
                     navController = navController,
                     userName = uiState.user?.name,
                     onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onEdit = { id -> navController.navigate(AppRoutes.editMotorcycle(id)) },
                     viewModel = motorcycleViewModel
                 )
@@ -284,6 +362,8 @@ fun MainApp() {
                     navController = navController,
                     userName = uiState.user?.name,
                     onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     viewModel = motorcycleViewModel
                 )
             } else {
@@ -297,6 +377,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {
@@ -332,6 +414,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {
@@ -364,6 +448,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {

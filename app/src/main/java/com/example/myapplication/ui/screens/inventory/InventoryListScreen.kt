@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.data.model.inventory.InventorySort
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
@@ -56,6 +57,8 @@ fun InventoryListScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: InventoryListViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -70,6 +73,8 @@ fun InventoryListScreen(
         navController = navController,
         isAdmin = true,
         userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
         onLogout = onLogout
     ) { padding ->
         Column(

@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.Motorcycle
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.viewmodel.MotorcycleStatus
@@ -46,6 +47,8 @@ fun CreateMotorcycleScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     onCreated: (String) -> Unit,
     viewModel: MotorcycleViewModel = viewModel()
 ) {
@@ -58,7 +61,15 @@ fun CreateMotorcycleScreen(
         }
     }
 
-    AppScaffold("Nueva motocicleta", navController, isAdmin = true, userName = userName, onLogout = onLogout) { padding ->
+    AppScaffold(
+        "Nueva motocicleta",
+        navController,
+        isAdmin = true,
+        userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
+        onLogout = onLogout
+    ) { padding ->
         MotorcycleForm(
             initial = null,
             state = state,
@@ -78,6 +89,8 @@ fun EditMotorcycleScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: MotorcycleViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -92,7 +105,15 @@ fun EditMotorcycleScreen(
         }
     }
 
-    AppScaffold("Editar motocicleta", navController, isAdmin = true, userName = userName, onLogout = onLogout) { padding ->
+    AppScaffold(
+        "Editar motocicleta",
+        navController,
+        isAdmin = true,
+        userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
+        onLogout = onLogout
+    ) { padding ->
         val motorcycle = state.selectedMotorcycle
         when {
             state.isLoadingDetail && (motorcycle == null || motorcycle.id != id) ->

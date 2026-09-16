@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -59,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -69,7 +71,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
+import com.example.myapplication.data.model.UserDto
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class AppMenuItem(
     val route: String,
@@ -93,6 +98,8 @@ fun AppScaffold(
     navController: NavController,
     isAdmin: Boolean,
     userName: String? = null,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     onLogout: () -> Unit = {},
     appBar: (@Composable (onOpenDrawer: () -> Unit) -> Unit)? = null,
@@ -110,7 +117,11 @@ fun AppScaffold(
                 drawerContentColor = MaterialTheme.colorScheme.onBackground,
                 drawerTonalElevation = 0.dp
             ) {
-                DrawerHeader(userName)
+                DrawerHeader(
+                    user = currentUser,
+                    fallbackName = userName,
+                    onOpenProfile = onOpenProfile
+                )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.height(12.dp))
 
@@ -294,52 +305,112 @@ private fun NotificationButton() {
 }
 
 @Composable
-private fun DrawerHeader(userName: String?) {
+private fun DrawerHeader(
+    user: UserDto?,
+    fallbackName: String?,
+    onOpenProfile: () -> Unit
+) {
+    val displayName = user?.name?.takeIf { it.isNotBlank() } ?: fallbackName ?: "Usuario SGTM"
+    val role = user?.role?.let(::readableRole) ?: "Sesión activa"
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 22.dp)
+            .padding(horizontal = 14.dp, vertical = 14.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onOpenProfile)
+            .padding(horizontal = 10.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Build,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(27.dp)
-                )
-            }
+            SgtmAvatar(
+                user = user ?: UserDto(name = displayName),
+                modifier = Modifier.size(52.dp)
+            )
             Spacer(Modifier.size(12.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "SGTM",
+                    text = displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Gestión de taller",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = role,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                user?.email?.takeIf { it.isNotBlank() }?.let { email ->
+                    Text(
+                        text = email,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
-        if (!userName.isNullOrBlank()) {
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(Modifier.size(8.dp))
             Text(
-                text = "Sesión iniciada como $userName",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 18.dp)
+                text = "SGTM · Gestión de taller",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+fun SgtmAvatar(user: UserDto, modifier: Modifier = Modifier) {
+    val initial = user.name
+        ?.trim()
+        ?.firstOrNull()
+        ?.uppercaseChar()
+        ?.toString()
+        ?: "?"
+
+    Box(
+        modifier = modifier
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initial,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        if (!user.avatar.isNullOrBlank()) {
+            AsyncImage(
+                model = user.avatar,
+                contentDescription = "Avatar de ${user.name.orEmpty()}",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+private fun readableRole(role: String): String {
+    return when (role.trim().lowercase(Locale.ROOT)) {
+        "admin", "administrador", "1" -> "Administrador"
+        "recepcionista", "2" -> "Recepcionista"
+        "tecnico", "técnico", "3" -> "Técnico"
+        else -> role
     }
 }
 

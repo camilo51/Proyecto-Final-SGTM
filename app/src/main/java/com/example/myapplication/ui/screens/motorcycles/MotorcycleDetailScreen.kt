@@ -33,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.viewmodel.MotorcycleStatus
 import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
@@ -43,6 +44,8 @@ fun MotorcycleDetailScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     onEdit: (String) -> Unit,
     viewModel: MotorcycleViewModel = viewModel()
 ) {
@@ -54,6 +57,8 @@ fun MotorcycleDetailScreen(
         navController = navController,
         isAdmin = true,
         userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
         onLogout = onLogout
     ) { padding ->
         val motorcycle = state.selectedMotorcycle

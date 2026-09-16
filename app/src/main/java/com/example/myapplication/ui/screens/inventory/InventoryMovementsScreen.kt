@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.data.model.inventory.InventoryMovementDto
 import com.example.myapplication.data.model.inventory.StockMovementAction
 import com.example.myapplication.ui.screens.AppScaffold
@@ -47,6 +48,8 @@ fun InventoryMovementsScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: InventoryMovementsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -61,7 +64,15 @@ fun InventoryMovementsScreen(
         }
     }
 
-    AppScaffold("Movimientos de stock", navController, isAdmin = true, userName = userName, onLogout = onLogout) { padding ->
+    AppScaffold(
+        "Movimientos de stock",
+        navController,
+        isAdmin = true,
+        userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
+        onLogout = onLogout
+    ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()

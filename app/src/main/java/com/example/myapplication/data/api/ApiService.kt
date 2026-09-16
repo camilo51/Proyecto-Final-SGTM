@@ -15,6 +15,7 @@ import com.example.myapplication.data.model.ForgotPasswordResponse
 import com.example.myapplication.data.model.LoginRequest
 import com.example.myapplication.data.model.LoginResponse
 import com.example.myapplication.data.model.LogoutResponse
+import com.example.myapplication.data.model.ChangePasswordRequest
 import com.example.myapplication.data.model.RegisterRequest
 import com.example.myapplication.data.model.RegisterResponse
 import com.example.myapplication.data.model.ResetPasswordRequest
@@ -74,6 +75,14 @@ interface ApiService {
         @Body request: ResetPasswordRequest
     ): ResetPasswordResponse
 
+    @GET("auth/me")
+    suspend fun getCurrentUser(): ApiResponse<com.example.myapplication.data.model.UserDto>
+
+    @PUT("auth/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
+    ): ApiResponse<Any?>
+
 
     // =========================
     // USERS
@@ -96,7 +105,7 @@ interface ApiService {
     suspend fun updateUser(
         @Path("id") id: String,
         @Body user: User
-    ): User
+    ): ApiResponse<User>
 
     @DELETE("users/{id}")
     suspend fun deleteUser(
