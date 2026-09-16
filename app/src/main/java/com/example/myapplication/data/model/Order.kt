@@ -7,18 +7,21 @@ data class Order(
     @SerializedName("id")
     val id: String? = null,
 
-    @SerializedName("clientId")
-    val clientId: String,
+    @SerializedName(value = "order_number", alternate = ["orderNumber"])
+    val orderNumber: String? = null,
 
-    @SerializedName("motorcycleId")
-    val motorcycleId: String,
+    @SerializedName(value = "client_id", alternate = ["clientId"])
+    val clientId: String = "",
 
-    @SerializedName("description")
-    val description: String,
+    @SerializedName(value = "motorcycle_id", alternate = ["motorcycleId"])
+    val motorcycleId: String = "",
+
+    @SerializedName(value = "diagnostic_notes", alternate = ["description"])
+    val description: String = "",
 
     @SerializedName("status")
-    val status: String,
+    val status: String = "",
 
-    @SerializedName("total")
-    val total: Double
+    @SerializedName(value = "final_price", alternate = ["total"])
+    val total: Double = 0.0
 )

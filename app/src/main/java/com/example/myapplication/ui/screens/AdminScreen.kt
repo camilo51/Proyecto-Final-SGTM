@@ -24,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.theme.AppTheme
+import androidx.navigation.NavController
 import com.example.myapplication.ui.viewmodel.DashboardViewModel
 import java.util.Calendar
 import java.util.Locale
@@ -33,38 +33,42 @@ import java.util.Locale
 @Composable
 fun AdminScreen(
     userName: String?,
+    navController: NavController,
+    isAdmin: Boolean,
+    onLogout: () -> Unit,
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    AppTheme(darkTheme = true) {
+    AppScaffold(
+        title = "Dashboard",
+        navController = navController,
+        isAdmin = isAdmin,
+        userName = userName,
+        onLogout = onLogout,
+        appBar = { onOpenDrawer -> TopSearchBar(onOpenDrawer) }
+    ) { padding ->
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             color = MaterialTheme.colorScheme.background
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .windowInsetsPadding(WindowInsets.safeDrawing)
+                        .weight(1f)
+                        .padding(horizontal = 20.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(28.dp)
                 ) {
-                    TopSearchBar()
+                    DashboardHeader(userName)
 
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 20.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(28.dp)
-                    ) {
-                        DashboardHeader(userName)
+                    MetricsSection(uiState)
 
-                        MetricsSection(uiState)
-
-                        FinancialSummarySection(uiState)
-
-                        Spacer(modifier = Modifier.height(40.dp))
-                    }
+                    FinancialSummarySection(uiState.totalSales)
                 }
             }
         }
@@ -73,15 +77,16 @@ fun AdminScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopSearchBar() {
+private fun TopSearchBar(onOpenDrawer: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
             .padding(vertical = 12.dp, horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        IconButton(onClick = { /* Menú */ }) {
+        IconButton(onClick = onOpenDrawer) {
             Icon(Icons.Default.Menu, contentDescription = "Menú", tint = MaterialTheme.colorScheme.primary)
         }
 
@@ -288,8 +293,7 @@ private fun DashboardMetricCard(
 }
 
 @Composable
-private fun FinancialSummarySection(uiState: com.example.myapplication.ui.viewmodel.DashboardUiState) {
-    val totalSales = uiState.totalSales
+private fun FinancialSummarySection(totalSales: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -319,7 +323,7 @@ private fun FinancialSummarySection(uiState: com.example.myapplication.ui.viewmo
                 }
             }
             
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -338,37 +342,6 @@ private fun FinancialSummarySection(uiState: com.example.myapplication.ui.viewmo
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                PeriodicSaleItem("Día", uiState.dailySales)
-                PeriodicSaleItem("Quincena", uiState.fortnightlySales)
-                PeriodicSaleItem("Mensual", uiState.monthlySales)
-                PeriodicSaleItem("Anual", uiState.yearlySales)
-            }
         }
-    }
-}
-
-@Composable
-private fun PeriodicSaleItem(label: String, value: Double) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "$" + String.format(Locale.getDefault(), "%,.0f", value),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

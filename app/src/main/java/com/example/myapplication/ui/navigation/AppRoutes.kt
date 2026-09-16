@@ -1,0 +1,32 @@
+package com.example.myapplication.ui.navigation
+
+import android.net.Uri
+
+object AppRoutes {
+    const val Login = "login"
+    const val Admin = "admin"
+    const val Home = "home"
+    const val Clients = "clients"
+    const val Motorcycles = "motorcycles"
+    const val MotorcycleDetail = "motorcycles/{motorcycleId}"
+    const val CreateMotorcycle = "motorcycles/create"
+    const val EditMotorcycle = "motorcycles/{motorcycleId}/edit"
+    const val Inventory = "inventory"
+    const val Orders = "orders"
+    const val OrderDetail = "orders/{orderId}"
+    const val CreateOrder = "orders/create"
+    const val EditOrder = "orders/{orderId}/edit"
+    
+    const val Employees = "employees"
+    const val Users = "users"
+    const val Reports = "reports"
+    const val Billing = "billing"
+    const val CRM = "crm"
+    const val Audit = "audit"
+    const val Backups = "backups"
+
+    fun orderDetail(id: String): String = "orders/${Uri.encode(id)}"
+    fun editOrder(id: String): String = "orders/${Uri.encode(id)}/edit"
+    fun motorcycleDetail(id: String): String = "motorcycles/${Uri.encode(id)}"
+    fun editMotorcycle(id: String): String = "motorcycles/${Uri.encode(id)}/edit"
+}
