@@ -8,7 +8,6 @@ import com.example.myapplication.data.model.Invoice
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.data.model.Reminder
-import com.example.myapplication.data.model.Report
 import com.example.myapplication.data.model.User
 import com.example.myapplication.data.model.ForgotPasswordRequest
 import com.example.myapplication.data.model.ForgotPasswordResponse
@@ -323,7 +322,10 @@ interface ApiService {
     // =========================
 
     @GET("orders")
-    suspend fun getOrders(): ApiResponse<List<Order>>
+    suspend fun getOrders(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
+    ): PaginatedApiResponse<Order>
 
     @GET("orders/{id}")
     suspend fun getOrder(
@@ -352,23 +354,26 @@ interface ApiService {
     // =========================
 
     @GET("invoices")
-    suspend fun getInvoices(): List<Invoice>
+    suspend fun getInvoices(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
+    ): PaginatedApiResponse<Invoice>
 
     @GET("invoices/{id}")
     suspend fun getInvoice(
         @Path("id") id: String
-    ): Invoice
+    ): ApiResponse<Invoice>
 
     @POST("invoices")
     suspend fun createInvoice(
         @Body invoice: Invoice
-    ): Invoice
+    ): ApiResponse<Invoice>
 
     @PUT("invoices/{id}")
     suspend fun updateInvoice(
         @Path("id") id: String,
         @Body invoice: Invoice
-    ): Invoice
+    ): ApiResponse<Invoice>
 
     @DELETE("invoices/{id}")
     suspend fun deleteInvoice(
@@ -404,16 +409,4 @@ interface ApiService {
         @Path("id") id: String
     )
 
-
-    // =========================
-    // REPORTS
-    // =========================
-
-    @GET("reports")
-    suspend fun getReports(): List<Report>
-
-    @GET("reports/{id}")
-    suspend fun getReport(
-        @Path("id") id: String
-    ): Report
 }
