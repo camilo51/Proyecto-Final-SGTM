@@ -31,6 +31,9 @@ data class OrderUiState(
     val selectedOrder: Order? = null,
     val clients: List<Client> = emptyList(),
     val motorcycles: List<Motorcycle> = emptyList(),
+    val motorcyclesForSelectedClient: List<Motorcycle> = emptyList(),
+    val selectedClientId: String? = null,
+    val selectedMotorcycleId: String? = null,
     val statuses: List<String> = emptyList(),
     val searchQuery: String = "",
     val selectedStatus: String? = null,
@@ -39,14 +42,28 @@ data class OrderUiState(
     val isLoadingDetail: Boolean = false,
     val isLoadingReferences: Boolean = false,
     val referencesLoaded: Boolean = false,
+    val isLoadingClientMotorcycles: Boolean = false,
     val isSaving: Boolean = false,
+    val updatingOrderId: String? = null,
     val isDeleting: Boolean = false,
     val errorMessage: String? = null,
     val detailErrorMessage: String? = null,
     val operationMessage: String? = null,
     val savedOrderId: String? = null,
     val deletedOrderId: String? = null
-)
+) {
+    val isUpdatingStatus: Boolean
+        get() = updatingOrderId != null
+
+    val selectedClient: Client?
+        get() = clients.firstOrNull { it.id == selectedClientId }
+
+    val selectedMotorcycle: Motorcycle?
+        get() = motorcycles.firstOrNull { it.id == selectedMotorcycleId }
+
+    val selectedClientMotorcycles: List<Motorcycle>
+        get() = if (selectedClientId == null) emptyList() else motorcyclesForSelectedClient
+}
 
 class OrderViewModel(
     private val orderRepository: OrderRepository = OrderRepository(RetrofitClient.apiService),
@@ -142,6 +159,68 @@ class OrderViewModel(
         _uiState.update { it.copy(selectedStatus = status?.takeIf(String::isNotBlank)).withFilters() }
     }
 
+    fun resetOrderDraft() {
+        _uiState.update {
+            it.copy(
+                selectedClientId = null,
+                selectedMotorcycleId = null,
+                motorcyclesForSelectedClient = emptyList(),
+                isLoadingClientMotorcycles = false
+            )
+        }
+    }
+
+    fun selectClient(clientId: String) {
+        val state = _uiState.value
+        val client = state.clients.firstOrNull { it.id == clientId } ?: return
+        val localMotorcycles = state.motorcycles.filter { it.clientId == clientId }
+        _uiState.update {
+            it.copy(
+                selectedClientId = clientId,
+                selectedMotorcycleId = localMotorcycles.singleOrNull()?.id,
+                motorcyclesForSelectedClient = localMotorcycles,
+                isLoadingClientMotorcycles = true,
+                operationMessage = null
+            )
+        }
+        workScope.launch {
+            try {
+                val motorcycles = motorcycleRepository.getMotorcyclesForClient(clientId)
+                _uiState.update { currentState ->
+                    if (currentState.selectedClientId != clientId) {
+                        currentState
+                    } else {
+                        currentState.copy(
+                            motorcycles = (currentState.motorcycles + motorcycles).distinctBy(Motorcycle::id),
+                            motorcyclesForSelectedClient = motorcycles,
+                            selectedMotorcycleId = motorcycles.singleOrNull()?.id,
+                            isLoadingClientMotorcycles = false
+                        )
+                    }
+                }
+            } catch (exception: Exception) {
+                _uiState.update { currentState ->
+                    if (currentState.selectedClientId == clientId) {
+                        currentState.copy(
+                            isLoadingClientMotorcycles = false,
+                            operationMessage = messageFor(exception, "No se pudieron cargar las motocicletas del cliente")
+                        )
+                    } else {
+                        currentState
+                    }
+                }
+            }
+        }
+    }
+
+    fun selectMotorcycle(motorcycleId: String) {
+        val state = _uiState.value
+        val motorcycle = state.motorcycles.firstOrNull {
+            it.id == motorcycleId && it.clientId == state.selectedClientId
+        } ?: return
+        _uiState.update { it.copy(selectedMotorcycleId = motorcycle.id) }
+    }
+
     fun selectOrder(id: String) {
         val order = _uiState.value.orders.firstOrNull { it.id == id }
         if (order != null) _uiState.update { it.copy(selectedOrder = order, detailErrorMessage = null) }
@@ -170,6 +249,18 @@ class OrderViewModel(
         totalText: String
     ) {
         if (_uiState.value.isSaving) return
+        val state = _uiState.value
+        if (state.clients.isNotEmpty() && state.clients.none { it.id == clientId }) {
+            _uiState.update { it.copy(operationMessage = "Selecciona un cliente válido") }
+            return
+        }
+        if (state.motorcycles.isNotEmpty()) {
+            val motorcycle = state.motorcycles.firstOrNull { it.id == motorcycleId }
+            if (motorcycle == null || motorcycle.clientId != clientId) {
+                _uiState.update { it.copy(operationMessage = "La motocicleta no pertenece al cliente seleccionado") }
+                return
+            }
+        }
         val validationError = OrderValidator.validate(clientId, motorcycleId, description, status, totalText)
         if (validationError != null) {
             _uiState.update { it.copy(operationMessage = validationError) }
@@ -206,12 +297,15 @@ class OrderViewModel(
 
     fun updateOrder(order: Order) {
         if (_uiState.value.isSaving) return
+        val currentOrder = _uiState.value.orders.firstOrNull { it.id == order.id }
+            ?: _uiState.value.selectedOrder?.takeIf { it.id == order.id }
+        val orderToUpdate = order.copy(status = currentOrder?.status ?: order.status)
         val validationError = OrderValidator.validate(
-            order.clientId,
-            order.motorcycleId,
-            order.description,
-            order.status,
-            order.total.toString()
+            orderToUpdate.clientId,
+            orderToUpdate.motorcycleId,
+            orderToUpdate.description,
+            orderToUpdate.status,
+            orderToUpdate.total.toString()
         )
         if (validationError != null) {
             _uiState.update { it.copy(operationMessage = validationError) }
@@ -220,7 +314,7 @@ class OrderViewModel(
         workScope.launch {
             _uiState.update { it.copy(isSaving = true, operationMessage = null) }
             try {
-                val updated = orderRepository.updateOrder(order.id.orEmpty(), order)
+                val updated = orderRepository.updateOrder(orderToUpdate.id.orEmpty(), orderToUpdate)
                 _uiState.update {
                     it.copy(
                         orders = it.orders.map { current -> if (current.id == updated.id) updated else current },
@@ -238,8 +332,60 @@ class OrderViewModel(
 
     fun changeStatus(status: String) {
         val order = _uiState.value.selectedOrder ?: return
-        if (status.isBlank() || status == order.status) return
-        updateOrder(order.copy(status = status))
+        updateOrderStatus(order.id.orEmpty(), status)
+    }
+
+    fun updateOrderStatus(orderId: String, status: String) {
+        val currentOrder = _uiState.value.orders.firstOrNull { it.id == orderId }
+            ?: _uiState.value.selectedOrder?.takeIf { it.id == orderId }
+            ?: return
+        if (orderId.isBlank() || status.isBlank() || status == currentOrder.status || _uiState.value.isUpdatingStatus) return
+
+        workScope.launch {
+            _uiState.update {
+                it.copy(
+                    updatingOrderId = orderId,
+                    operationMessage = null,
+                    errorMessage = null
+                )
+            }
+            try {
+                val updatedOrder = orderRepository.updateOrder(
+                    orderId,
+                    currentOrder.copy(status = status)
+                )
+                val updatedMotorcycle = syncMotorcycleStatus(
+                    updatedOrder.motorcycleId.ifBlank { currentOrder.motorcycleId },
+                    status
+                )
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        orders = currentState.orders.map { order ->
+                            if (order.id == updatedOrder.id) updatedOrder else order
+                        },
+                        selectedOrder = if (currentState.selectedOrder?.id == updatedOrder.id) {
+                            updatedOrder
+                        } else {
+                            currentState.selectedOrder
+                        },
+                        motorcycles = updatedMotorcycle?.let { motorcycle ->
+                            currentState.motorcycles.map { current ->
+                                if (current.id == motorcycle.id) motorcycle else current
+                            }
+                        } ?: currentState.motorcycles,
+                        updatingOrderId = null,
+                        operationMessage = "Estado actualizado correctamente"
+                    ).withFilters()
+                }
+            } catch (exception: Exception) {
+                _uiState.update {
+                    it.copy(
+                        updatingOrderId = null,
+                        operationMessage = messageFor(exception, "No se pudo actualizar el estado")
+                    )
+                }
+            }
+        }
     }
 
     fun deleteOrder(id: String) {
@@ -295,6 +441,14 @@ class OrderViewModel(
                 matchesQuery && matchesStatus
             }
         )
+    }
+
+    private suspend fun syncMotorcycleStatus(motorcycleId: String, status: String): Motorcycle? {
+        if (motorcycleId.isBlank()) return null
+        val motorcycle = _uiState.value.motorcycles.firstOrNull { it.id == motorcycleId }
+            ?: motorcycleRepository.getMotorcycle(motorcycleId)
+        val id = motorcycle.id?.takeIf(String::isNotBlank) ?: motorcycleId
+        return motorcycleRepository.updateMotorcycle(id, motorcycle.copy(status = status))
     }
 
     private fun messageFor(exception: Exception, fallback: String): String = when (exception) {
@@ -372,8 +526,8 @@ class OrderViewModel(
     }
 
     private fun safeErrorMessage(body: String): String {
-        val message = Regex("""(?i)\"message\"\s*:\s*\"([^\"]*)\"""
-        ).find(body)?.groupValues?.getOrNull(1)
+        val message = Regex("(?i)\\\"message\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"")
+            .find(body)?.groupValues?.getOrNull(1)
         return message?.let { "message=${it.take(1_000)}" } ?: "body_present=true"
     }
 }

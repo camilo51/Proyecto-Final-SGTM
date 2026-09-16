@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.BuildConfig
 import com.example.myapplication.data.api.RetrofitClient
-import com.example.myapplication.data.api.AuthTokenStore
 import com.example.myapplication.data.model.ForgotPasswordRequest
 import com.example.myapplication.data.model.LoginErrorResponse
 import com.example.myapplication.data.model.LoginRequest
@@ -38,6 +37,10 @@ class LoginViewModel(
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    fun updateUser(user: UserDto) {
+        _uiState.value = _uiState.value.copy(user = user)
+    }
 
     fun onEmailChange(email: String) {
         _uiState.value = _uiState.value.copy(
@@ -104,7 +107,7 @@ class LoginViewModel(
                         }
                     }
                     if (accessToken.isNullOrBlank()) {
-                        AuthTokenStore.clear()
+                        RetrofitClient.setAuthorizationToken(null)
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             errorMessage = "El servidor no devolvió una sesión válida. Inténtalo nuevamente."
@@ -115,7 +118,7 @@ class LoginViewModel(
 
                     // Persistimos el token en memoria antes de notificar la navegación.
                     // Así la primera petición protegida no puede salir sin Authorization.
-                    AuthTokenStore.set(accessToken)
+                    RetrofitClient.setAuthorizationToken(accessToken)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true,
@@ -149,7 +152,7 @@ class LoginViewModel(
             } catch (_: Exception) {
                 // La sesión local debe cerrarse aunque la API no responda.
             } finally {
-                AuthTokenStore.clear()
+                RetrofitClient.setAuthorizationToken(null)
                 _uiState.value = LoginUiState()
                 onComplete()
             }

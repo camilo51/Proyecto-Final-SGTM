@@ -12,9 +12,12 @@ import java.io.IOException
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 
 class OrderViewModelTest {
     @Test
@@ -86,10 +89,142 @@ class OrderViewModelTest {
         assertEquals("Selecciona un cliente", viewModel.uiState.value.operationMessage)
     }
 
-    private fun viewModel(source: FakeOrderRepository): OrderViewModel = OrderViewModel(
+    @Test
+    fun updateOrderStatus_updatesOrderAndRelatedMotorcycle() {
+        val currentOrder = order("1", "En servicio")
+        val source = FakeOrderRepository(
+            values = listOf(currentOrder),
+            updated = currentOrder.copy(status = "En reparación")
+        )
+        val motorcycle = Motorcycle(
+            id = "20",
+            brand = "Honda",
+            model = "CB",
+            year = 2024,
+            plate = "ABC123",
+            clientId = "10",
+            status = "En servicio"
+        )
+        val motorcycleRepository = FakeMotorcycleRepository(
+            values = listOf(motorcycle),
+            updated = motorcycle.copy(status = "En reparación")
+        )
+        val viewModel = viewModel(source, motorcycleRepository)
+
+        viewModel.loadOrders()
+        viewModel.loadReferences()
+        viewModel.selectOrder("1")
+        viewModel.updateOrderStatus("1", "En reparación")
+
+        assertEquals("En reparación", viewModel.uiState.value.orders.single().status)
+        assertEquals("En reparación", viewModel.uiState.value.selectedOrder?.status)
+        assertEquals("En reparación", viewModel.uiState.value.motorcycles.single().status)
+        assertEquals(1, motorcycleRepository.updateCalls)
+        assertTrue(!viewModel.uiState.value.isUpdatingStatus)
+    }
+
+    @Test
+    fun updateOrderStatus_failure_keepsPreviousStatus() {
+        val currentOrder = order("1", "En servicio")
+        val source = FakeOrderRepository(
+            values = listOf(currentOrder),
+            updateFailure = HttpException(
+                Response.error<Any>(409, "conflict".toResponseBody())
+            )
+        )
+        val viewModel = viewModel(source)
+
+        viewModel.loadOrders()
+        viewModel.selectOrder("1")
+        viewModel.updateOrderStatus("1", "En reparación")
+
+        assertEquals("En servicio", viewModel.uiState.value.orders.single().status)
+        assertEquals("La operación entra en conflicto con el estado actual", viewModel.uiState.value.operationMessage)
+        assertTrue(!viewModel.uiState.value.isUpdatingStatus)
+    }
+
+    @Test
+    fun selectClient_withOneOwnedMotorcycle_selectsItAutomatically() {
+        val motorcycle = Motorcycle(id = "20", clientId = "10", plate = "ABC123")
+        val viewModel = viewModel(
+            source = FakeOrderRepository(),
+            motorcycleRepository = FakeMotorcycleRepository(values = listOf(motorcycle))
+        )
+
+        viewModel.loadReferences()
+        viewModel.selectClient("10")
+
+        assertEquals("10", viewModel.uiState.value.selectedClientId)
+        assertEquals("20", viewModel.uiState.value.selectedMotorcycleId)
+        assertEquals(listOf("20"), viewModel.uiState.value.selectedClientMotorcycles.map { it.id })
+    }
+
+    @Test
+    fun selectClient_withSeveralOwnedMotorcycles_waitsForSelection() {
+        val motorcycles = listOf(
+            Motorcycle(id = "20", clientId = "10", plate = "ABC123"),
+            Motorcycle(id = "21", clientId = "10", plate = "XYZ456"),
+            Motorcycle(id = "22", clientId = "99", plate = "OTHER1")
+        )
+        val viewModel = viewModel(
+            source = FakeOrderRepository(),
+            motorcycleRepository = FakeMotorcycleRepository(values = motorcycles)
+        )
+
+        viewModel.loadReferences()
+        viewModel.selectClient("10")
+
+        assertEquals(null, viewModel.uiState.value.selectedMotorcycleId)
+        assertEquals(listOf("20", "21"), viewModel.uiState.value.selectedClientMotorcycles.map { it.id })
+        viewModel.selectMotorcycle("22")
+        assertEquals(null, viewModel.uiState.value.selectedMotorcycleId)
+        viewModel.selectMotorcycle("21")
+        assertEquals("21", viewModel.uiState.value.selectedMotorcycleId)
+    }
+
+    @Test
+    fun selectClient_refreshesOwnedMotorcyclesFromFilteredEndpoint() {
+        val motorcycle = Motorcycle(id = "30", clientId = "10", plate = "NEW123")
+        val viewModel = viewModel(
+            source = FakeOrderRepository(),
+            motorcycleRepository = FakeMotorcycleRepository(
+                values = emptyList(),
+                clientValues = listOf(motorcycle)
+            )
+        )
+
+        viewModel.loadReferences()
+        viewModel.selectClient("10")
+
+        assertEquals(listOf("30"), viewModel.uiState.value.selectedClientMotorcycles.map { it.id })
+        assertEquals("30", viewModel.uiState.value.selectedMotorcycleId)
+    }
+
+    @Test
+    fun createOrder_rejectsMotorcycleFromAnotherClient() {
+        val source = FakeOrderRepository()
+        val viewModel = viewModel(
+            source = source,
+            motorcycleRepository = FakeMotorcycleRepository(
+                values = listOf(Motorcycle(id = "20", clientId = "99"))
+            )
+        )
+        viewModel.loadReferences()
+
+        viewModel.createOrder("10", "20", "Revisión", "En servicio", "45000")
+
+        assertEquals(0, source.createCalls)
+        assertEquals("La motocicleta no pertenece al cliente seleccionado", viewModel.uiState.value.operationMessage)
+    }
+
+    private fun viewModel(
+        source: FakeOrderRepository,
+        motorcycleRepository: FakeMotorcycleRepository = FakeMotorcycleRepository(),
+        clientRepository: ClientRepository = FakeClientRepository
+    ): OrderViewModel = OrderViewModel(
         orderRepository = source,
-        clientRepository = FakeClientRepository,
-        motorcycleRepository = FakeMotorcycleRepository,
+        clientRepository = clientRepository,
+        motorcycleRepository = motorcycleRepository,
         testScope = CoroutineScope(Dispatchers.Unconfined)
     )
 
@@ -106,7 +241,9 @@ class OrderViewModelTest {
 private class FakeOrderRepository(
     private val values: List<Order> = emptyList(),
     private val failure: Exception? = null,
-    private val created: Order? = null
+    private val created: Order? = null,
+    private val updated: Order? = null,
+    private val updateFailure: Exception? = null
 ) : OrderRepository(noOpApiService) {
     var createCalls = 0
 
@@ -122,7 +259,10 @@ private class FakeOrderRepository(
         return created ?: order.copy(id = "generated")
     }
 
-    override suspend fun updateOrder(id: String, order: Order): Order = order.copy(id = id)
+    override suspend fun updateOrder(id: String, order: Order): Order {
+        updateFailure?.let { throw it }
+        return updated ?: order.copy(id = id)
+    }
 
     override suspend fun deleteOrder(id: String) = Unit
 }
@@ -133,10 +273,26 @@ private object FakeClientRepository : ClientRepository(noOpApiService) {
     )
 }
 
-private object FakeMotorcycleRepository : MotorcycleRepository(noOpApiService) {
-    override suspend fun getMotorcycles(): List<Motorcycle> = listOf(
+private class FakeMotorcycleRepository(
+    private val values: List<Motorcycle> = listOf(
         Motorcycle(id = "20", brand = "Honda", model = "CB", year = 2024, plate = "ABC123", clientId = "10")
-    )
+    ),
+    private val clientValues: List<Motorcycle>? = null,
+    private val updated: Motorcycle? = null
+) : MotorcycleRepository(noOpApiService) {
+    var updateCalls = 0
+
+    override suspend fun getMotorcycles(): List<Motorcycle> = values
+
+    override suspend fun getMotorcyclesForClient(clientId: String): List<Motorcycle> =
+        (clientValues ?: values).filter { it.clientId == clientId }
+
+    override suspend fun getMotorcycle(id: String): Motorcycle = values.first { it.id == id }
+
+    override suspend fun updateMotorcycle(id: String, motorcycle: Motorcycle): Motorcycle {
+        updateCalls++
+        return updated ?: motorcycle.copy(id = id)
+    }
 }
 
 private val noOpApiService: ApiService = Proxy.newProxyInstance(

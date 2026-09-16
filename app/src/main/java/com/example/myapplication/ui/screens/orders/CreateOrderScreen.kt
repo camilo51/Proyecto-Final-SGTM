@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -20,8 +23,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.Motorcycle
+import com.example.myapplication.ui.viewmodel.MotorcycleStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 @Composable
@@ -32,16 +40,29 @@ fun CreateOrderScreen(
     viewModel: OrderViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    LaunchedEffect(Unit) { viewModel.loadReferences() }
-    var clientId by rememberSaveable { mutableStateOf("") }
-    var motorcycleId by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        viewModel.resetOrderDraft()
+        viewModel.loadReferences()
+    }
     var description by rememberSaveable { mutableStateOf("") }
-    var status by rememberSaveable { mutableStateOf("") }
+    var status by rememberSaveable { mutableStateOf(MotorcycleStatus.IN_SERVICE) }
     var total by rememberSaveable { mutableStateOf("") }
 
-    val motorcycles = state.motorcycles.filter { it.clientId == clientId }
+    val clientId = state.selectedClientId.orEmpty()
+    val motorcycleId = state.selectedMotorcycleId.orEmpty()
+    val motorcycles = state.selectedClientMotorcycles
+    val selectedClient = state.selectedClient
+    val selectedMotorcycle = state.selectedMotorcycle
+    val statusOptions = (state.statuses + MotorcycleStatus.values).filter(String::isNotBlank).distinct()
     val clientOptions = state.clients.mapNotNull { client ->
-        client.id?.let { OrderDropdownOption(it, client.name.orEmpty()) }
+        client.id?.let {
+            OrderDropdownOption(
+                id = it,
+                label = client.name.ifBlank { "Cliente sin nombre" },
+                searchText = listOf(client.name, client.cedula.orEmpty(), client.phone, client.email)
+                    .joinToString(" ")
+            )
+        }
     }
     val motorcycleOptions = motorcycles.mapNotNull { motorcycle ->
         motorcycle.id?.let { OrderDropdownOption(it, "${motorcycle.brand} ${motorcycle.model} · ${motorcycle.plate}") }
@@ -72,20 +93,30 @@ fun CreateOrderScreen(
             selectedId = clientId,
             options = clientOptions,
             enabled = !state.isSaving,
-            onSelected = {
-                clientId = it
-                if (motorcycles.none { motorcycle -> motorcycle.id == motorcycleId && motorcycle.clientId == it }) {
-                    motorcycleId = ""
-                }
-            }
+            searchable = true,
+            searchPlaceholder = "Nombre, documento, teléfono o correo",
+            onSelected = viewModel::selectClient
         )
+        selectedClient?.let { ClientSelectionSummary(it) }
+        if (state.isLoadingClientMotorcycles && clientId.isNotBlank()) {
+            Text(
+                "Cargando motocicletas del cliente…",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else if (state.referencesLoaded && clientId.isNotBlank() && motorcycles.isEmpty()) {
+            Text(
+                "Este cliente no tiene motocicletas registradas.",
+                color = MaterialTheme.colorScheme.error
+            )
+        }
         OrderReferenceDropdown(
             label = "Motocicleta",
             selectedId = motorcycleId,
             options = motorcycleOptions,
-            enabled = !state.isSaving && clientId.isNotBlank(),
-            onSelected = { motorcycleId = it }
+            enabled = !state.isSaving && clientId.isNotBlank() && !state.isLoadingClientMotorcycles,
+            onSelected = viewModel::selectMotorcycle
         )
+        selectedMotorcycle?.let { MotorcycleSelectionSummary(it) }
         OutlinedTextField(
             value = description,
             onValueChange = { if (it.length <= 2000) description = it },
@@ -95,14 +126,12 @@ fun CreateOrderScreen(
             minLines = 4,
             enabled = !state.isSaving
         )
-        OutlinedTextField(
-            value = status,
-            onValueChange = { status = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Estado") },
-            supportingText = { Text("Usa un estado aceptado por la API") },
-            singleLine = true,
-            enabled = !state.isSaving
+        OrderReferenceDropdown(
+            label = "Estado",
+            selectedId = status,
+            options = statusOptions.map { OrderDropdownOption(it, it) },
+            enabled = !state.isSaving,
+            onSelected = { status = it }
         )
         OutlinedTextField(
             value = total,
@@ -110,7 +139,11 @@ fun CreateOrderScreen(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Total") },
             singleLine = true,
-            enabled = !state.isSaving
+            enabled = !state.isSaving,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Done
+            )
         )
 
         state.operationMessage?.let { message ->
@@ -126,6 +159,46 @@ fun CreateOrderScreen(
         }
         Button(onClick = onBack, enabled = !state.isSaving, modifier = Modifier.fillMaxWidth()) {
             Text("Cancelar")
+        }
+    }
+}
+
+@Composable
+private fun ClientSelectionSummary(client: Client) {
+    SelectionSummaryCard(
+        title = "Cliente seleccionado",
+        primary = client.name.ifBlank { "Nombre no registrado" },
+        secondary = listOf(client.cedula, client.phone.takeIf(String::isNotBlank))
+            .filterNotNull()
+            .filter(String::isNotBlank)
+            .joinToString(" · ")
+    )
+}
+
+@Composable
+private fun MotorcycleSelectionSummary(motorcycle: Motorcycle) {
+    SelectionSummaryCard(
+        title = "Motocicleta seleccionada",
+        primary = motorcycle.plate ?: "Placa no registrada",
+        secondary = listOfNotNull(
+            listOfNotNull(motorcycle.brand, motorcycle.model).joinToString(" ").takeIf(String::isNotBlank),
+            motorcycle.year?.toString()
+        ).joinToString(" · ")
+    )
+}
+
+@Composable
+private fun SelectionSummaryCard(title: String, primary: String, secondary: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(primary, style = MaterialTheme.typography.titleSmall)
+            if (secondary.isNotBlank()) {
+                Text(secondary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

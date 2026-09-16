@@ -25,6 +25,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.viewmodel.DashboardViewModel
 import java.util.Calendar
 import java.util.Locale
@@ -36,6 +37,8 @@ fun AdminScreen(
     navController: NavController,
     isAdmin: Boolean,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -45,6 +48,8 @@ fun AdminScreen(
         navController = navController,
         isAdmin = isAdmin,
         userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
         onLogout = onLogout,
         appBar = { onOpenDrawer -> TopSearchBar(onOpenDrawer) }
     ) { padding ->

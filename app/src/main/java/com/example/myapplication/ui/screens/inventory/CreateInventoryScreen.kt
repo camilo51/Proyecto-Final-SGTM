@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.viewmodel.inventory.CreateInventoryViewModel
 
@@ -26,6 +27,8 @@ fun CreateInventoryScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: CreateInventoryViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -35,7 +38,15 @@ fun CreateInventoryScreen(
             navController.popBackStack()
         }
     }
-    AppScaffold("Nuevo repuesto", navController, isAdmin = true, userName = userName, onLogout = onLogout) { padding ->
+    AppScaffold(
+        "Nuevo repuesto",
+        navController,
+        isAdmin = true,
+        userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
+        onLogout = onLogout
+    ) { padding ->
         if (state.isLoading) {
             CircularProgressIndicator(modifier = Modifier.padding(padding))
         } else {
