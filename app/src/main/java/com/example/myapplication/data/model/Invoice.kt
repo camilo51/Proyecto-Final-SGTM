@@ -3,22 +3,21 @@ package com.example.myapplication.data.model
 import com.google.gson.annotations.SerializedName
 
 data class Invoice(
-
     @SerializedName("id")
     val id: String? = null,
 
-    @SerializedName("clientId")
-    val clientId: String,
+    @SerializedName(value = "client_id", alternate = ["clientId"])
+    val clientId: String = "",
 
-    @SerializedName("orderId")
-    val orderId: String,
+    @SerializedName(value = "order_id", alternate = ["orderId"])
+    val orderId: String = "",
 
-    @SerializedName("date")
-    val date: String,
+    @SerializedName(value = "issue_date", alternate = ["date", "created_at"])
+    val date: String? = null,
 
-    @SerializedName("total")
-    val total: Double,
+    @SerializedName(value = "total", alternate = ["final_price", "amount"])
+    val total: Double = 0.0,
 
     @SerializedName("status")
-    val status: String
+    val status: String = ""
 )

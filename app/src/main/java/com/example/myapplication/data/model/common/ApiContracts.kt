@@ -43,6 +43,20 @@ fun <T> ApiResponse<T>.requireData(): T {
     throw ApiException(message = errorMessage)
 }
 
+fun <T> PaginatedApiResponse<T>.requireData(): PaginatedResult<T> {
+    if (success) {
+        return PaginatedResult(
+            items = data,
+            pagination = pagination ?: PaginationDto(limit = data.size)
+        )
+    }
+
+    val errorMessage = message
+        .ifBlank { errors.firstOrNull()?.message.orEmpty() }
+        .ifBlank { "La API no devolvió datos válidos" }
+    throw ApiException(message = errorMessage)
+}
+
 sealed interface NetworkResult<out T> {
     data class Success<T>(val data: T, val message: String = "") : NetworkResult<T>
     data class Error(

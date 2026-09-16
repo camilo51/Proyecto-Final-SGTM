@@ -9,6 +9,7 @@ object AppRoutes {
     const val Clients = "clients"
     const val Inventory = "inventory"
     const val Orders = "orders"
+    const val Reports = "reports"
     const val OrderDetail = "orders/{orderId}"
     const val CreateOrder = "orders/create"
     const val EditOrder = "orders/{orderId}/edit"
