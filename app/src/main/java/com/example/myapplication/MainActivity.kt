@@ -33,6 +33,8 @@ import com.example.myapplication.ui.screens.inventory.EditInventoryScreen
 import com.example.myapplication.ui.screens.inventory.InventoryDetailScreen
 import com.example.myapplication.ui.screens.inventory.InventoryListScreen
 import com.example.myapplication.ui.screens.inventory.InventoryMovementsScreen
+import com.example.myapplication.ui.screens.invoices.InvoicesScreen
+import com.example.myapplication.ui.screens.invoices.InvoiceDetailScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
 import com.example.myapplication.ui.screens.clients.ClientsScreen
 import com.example.myapplication.ui.screens.motorcycles.CreateMotorcycleScreen
@@ -50,6 +52,7 @@ import com.example.myapplication.ui.viewmodel.ClientViewModel
 import com.example.myapplication.ui.viewmodel.LoginViewModel
 import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
 import com.example.myapplication.ui.viewmodel.OrderViewModel
+import com.example.myapplication.ui.viewmodel.InvoiceViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -75,6 +78,7 @@ fun MainApp() {
     val clientViewModel: ClientViewModel = viewModel()
     val motorcycleViewModel: MotorcycleViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
+    val invoiceViewModel: InvoiceViewModel = viewModel()
     val uiState by loginViewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.accessToken) {
@@ -234,6 +238,46 @@ fun MainApp() {
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a reportes")
+            }
+        }
+        composable(AppRoutes.Invoices) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Facturación",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout
+                ) { padding ->
+                    InvoicesScreen(
+                        contentPadding = padding,
+                        onOpenInvoice = { id -> navController.navigate(AppRoutes.invoiceDetail(id)) },
+                        viewModel = invoiceViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a facturación")
+            }
+        }
+        composable(AppRoutes.InvoiceDetail) { entry ->
+            val invoiceId = entry.arguments?.getString("invoiceId")
+            if (uiState.isAdmin && invoiceId != null) {
+                AppScaffold(
+                    title = "Factura",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout
+                ) { padding ->
+                    InvoiceDetailScreen(
+                        contentPadding = padding,
+                        invoiceId = invoiceId,
+                        onBack = navController::popBackStack,
+                        viewModel = invoiceViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a esta factura")
             }
         }
         composable(AppRoutes.Motorcycles) {

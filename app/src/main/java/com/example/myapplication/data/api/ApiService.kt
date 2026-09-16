@@ -5,6 +5,7 @@ import com.example.myapplication.data.model.Brand
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Employee
 import com.example.myapplication.data.model.Invoice
+import com.example.myapplication.data.model.InvoiceRequest
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.data.model.Reminder
@@ -366,13 +367,17 @@ interface ApiService {
 
     @POST("invoices")
     suspend fun createInvoice(
-        @Body invoice: Invoice
+        @Body invoice: InvoiceRequest
     ): ApiResponse<Invoice>
 
-    @PUT("invoices/{id}")
-    suspend fun updateInvoice(
-        @Path("id") id: String,
-        @Body invoice: Invoice
+    @PUT("invoices/{id}/pay")
+    suspend fun payInvoice(
+        @Path("id") id: String
+    ): ApiResponse<Invoice>
+
+    @PUT("invoices/{id}/cancel")
+    suspend fun cancelInvoice(
+        @Path("id") id: String
     ): ApiResponse<Invoice>
 
     @DELETE("invoices/{id}")

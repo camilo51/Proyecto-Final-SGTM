@@ -2,6 +2,7 @@ package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Invoice
+import com.example.myapplication.data.model.InvoiceRequest
 import com.example.myapplication.data.model.common.requireData
 
 class InvoiceRepository(
@@ -15,12 +16,16 @@ class InvoiceRepository(
         return apiService.getInvoice(id).requireData()
     }
 
-    suspend fun createInvoice(invoice: Invoice): Invoice {
-        return apiService.createInvoice(invoice).requireData()
+    suspend fun createInvoice(request: InvoiceRequest): Invoice {
+        return apiService.createInvoice(request).requireData()
     }
 
-    suspend fun updateInvoice(id: String, invoice: Invoice): Invoice {
-        return apiService.updateInvoice(id, invoice).requireData()
+    suspend fun payInvoice(id: String): Invoice {
+        return apiService.payInvoice(id).requireData()
+    }
+
+    suspend fun cancelInvoice(id: String): Invoice {
+        return apiService.cancelInvoice(id).requireData()
     }
 
     suspend fun deleteInvoice(id: String) {
