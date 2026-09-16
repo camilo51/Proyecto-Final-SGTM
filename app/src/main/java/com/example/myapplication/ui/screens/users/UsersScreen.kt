@@ -1,45 +1,36 @@
 package com.example.myapplication.ui.screens.users
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.data.model.User
 import com.example.myapplication.ui.theme.AppTheme
-
-data class UserAccount(
-    val usuario: String,
-    val correo: String,
-    val rol: String,
-    val estado: String,
-    val ultimoAcceso: String,
-    val fechaCreacion: String
-)
-
-val mockUsers = listOf(
-    UserAccount("JOSÉ", "jose@example.com", "Administrador", "Activo", "15 de sept, 08:05 pm", "03 de ago de 2026"),
-    UserAccount("Danilo", "danilo@example.com", "Administrador", "Activo", "16 de sept, 06:27 am", "03 de ago de 2026"),
-    UserAccount("Sgtm Admin", "admin@enginesjds.com", "Administrador", "Activo", "Hoy, 10:57 pm", "02 de ago de 2026")
-)
+import com.example.myapplication.ui.viewmodel.UserViewModel
 
 @Composable
-fun UsersScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
+fun UsersScreen(
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    viewModel: UserViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
     val orange = MaterialTheme.colorScheme.primary
+
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedUser by remember { mutableStateOf<User?>(null) }
 
     AppTheme(darkTheme = true) {
         Surface(
@@ -82,7 +73,10 @@ fun UsersScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { /* Nuevo */ },
+                        onClick = { 
+                            selectedUser = null
+                            showDialog = true 
+                        },
                         modifier = Modifier.weight(1.3f),
                         colors = ButtonDefaults.buttonColors(containerColor = orange),
                         shape = RoundedCornerShape(12.dp),
@@ -91,13 +85,17 @@ fun UsersScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                         Text("+ Nuevo usuario", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
                     }
                     OutlinedButton(
-                        onClick = { /* Actualizar */ },
+                        onClick = { viewModel.refreshUsers() },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        if (state.isRefreshing) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Actualizar", fontSize = 13.sp, color = Color.White)
                     }
@@ -107,18 +105,20 @@ fun UsersScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { UserStatMiniCard("Total", "3") }
-                    item { UserStatMiniCard("Activos", "3") }
-                    item { UserStatMiniCard("Admins", "3") }
+                    item { UserStatMiniCard("Total", state.users.size.toString()) }
+                    item { UserStatMiniCard("Filtrados", state.filteredUsers.size.toString()) }
                 }
 
                 // Search Bar
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = state.searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Buscar usuarios...", color = Color.White.copy(alpha = 0.4f)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.4f)) },
+                    trailingIcon = if (state.searchQuery.isNotEmpty()) {
+                        { IconButton(onClick = { viewModel.clearSearch() }) { Icon(Icons.Default.Close, null, tint = Color.White.copy(alpha = 0.4f)) } }
+                    } else null,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
@@ -131,17 +131,101 @@ fun UsersScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                     singleLine = true
                 )
 
+                // Error Message
+                state.errorMessage?.let { error ->
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                }
+
                 // User Cards List
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    mockUsers.forEach { user ->
-                        UserCard(user)
+                if (state.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = orange)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        state.visibleUsers.forEach { user ->
+                            UserCard(
+                                user = user,
+                                onEdit = {
+                                    selectedUser = user
+                                    showDialog = true
+                                },
+                                onDelete = { user.id?.let { viewModel.deleteUser(it) } }
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
+
+        if (showDialog) {
+            UserFormDialog(
+                user = selectedUser,
+                onDismiss = { 
+                    showDialog = false
+                    viewModel.clearOperationMessage()
+                },
+                onSave = { name, email, avatar ->
+                    if (selectedUser == null) {
+                        viewModel.createUser(name, email, avatar)
+                    } else {
+                        viewModel.updateUser(selectedUser!!.copy(name = name, email = email, avatar = avatar))
+                    }
+                },
+                isSaving = state.isSaving,
+                operationMessage = state.operationMessage
+            )
+        }
     }
+
+    // Reset dialog when saving completes successfully
+    LaunchedEffect(state.creationVersion, state.updateVersion) {
+        if (showDialog && !state.isSaving && state.operationMessage?.contains("correctamente") == true) {
+            showDialog = false
+            viewModel.clearOperationMessage()
+        }
+    }
+}
+
+@Composable
+private fun UserFormDialog(
+    user: User?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String?) -> Unit,
+    isSaving: Boolean,
+    operationMessage: String?
+) {
+    var name by remember { mutableStateOf(user?.name ?: "") }
+    var email by remember { mutableStateOf(user?.email ?: "") }
+    var avatar by remember { mutableStateOf(user?.avatar ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (user == null) "Nuevo Usuario" else "Editar Usuario") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = avatar, onValueChange = { avatar = it }, label = { Text("Avatar (URL opcional)") }, modifier = Modifier.fillMaxWidth())
+                
+                operationMessage?.let {
+                    Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(name, email, avatar.takeIf { it.isNotBlank() }) },
+                enabled = !isSaving && name.isNotBlank() && email.isNotBlank()
+            ) {
+                if (isSaving) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                else Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Cancelar") }
+        }
+    )
 }
 
 @Composable
@@ -163,7 +247,11 @@ private fun UserStatMiniCard(label: String, value: String) {
 }
 
 @Composable
-private fun UserCard(user: UserAccount) {
+private fun UserCard(
+    user: User,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     val orange = MaterialTheme.colorScheme.primary
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -182,44 +270,21 @@ private fun UserCard(user: UserAccount) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = user.usuario,
+                        text = user.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = user.correo,
+                        text = user.email,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.9f)
                     )
-                }
-                
-                // Role Badge
-                Surface(
-                    color = Color(0xFFF3E8FF).copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, Color(0xFFA855F7).copy(alpha = 0.2f))
-                ) {
                     Text(
-                        text = user.rol,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = Color(0xFFD8B4FE),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "ID: ${user.id ?: "—"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.5f)
                     )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.4f))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Acceso: ${user.ultimoAcceso}", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.4f))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Creado: ${user.fechaCreacion}", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
                 }
             }
 
@@ -230,12 +295,12 @@ private fun UserCard(user: UserAccount) {
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = { /* logic */ }) {
+                TextButton(onClick = onEdit) {
                     Text("Editar", color = orange, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = { /* logic */ }) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }

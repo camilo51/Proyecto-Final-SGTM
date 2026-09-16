@@ -40,6 +40,7 @@ val mockInventory = listOf(
 
 @Composable
 fun InventoryListScreen(
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
@@ -55,6 +56,7 @@ fun InventoryListScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(contentPadding)
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)

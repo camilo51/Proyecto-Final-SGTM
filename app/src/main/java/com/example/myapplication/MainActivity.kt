@@ -155,8 +155,18 @@ fun MainApp() {
         composable(AppRoutes.Backups) { PlaceholderScreen("Respaldos") }
 
         composable("inventory") {
-            AdminOnlyRoute(uiState.isAdmin, navController) {
-                InventoryListScreen(navController, uiState.user?.name, onLogout)
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Inventario",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout
+                ) { padding ->
+                    InventoryListScreen(padding, navController, uiState.user?.name, onLogout)
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a inventario")
             }
         }
         composable("inventory/create") {

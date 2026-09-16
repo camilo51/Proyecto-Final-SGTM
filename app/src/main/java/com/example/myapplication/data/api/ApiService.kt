@@ -80,28 +80,28 @@ interface ApiService {
     // =========================
 
     @GET("users")
-    suspend fun getUsers(): List<User>
+    suspend fun getUsers(): ApiResponse<List<User>>
 
     @GET("users/{id}")
     suspend fun getUser(
         @Path("id") id: String
-    ): User
+    ): ApiResponse<User>
 
     @POST("users")
     suspend fun createUser(
         @Body user: User
-    ): User
+    ): ApiResponse<User>
 
     @PUT("users/{id}")
     suspend fun updateUser(
         @Path("id") id: String,
         @Body user: User
-    ): User
+    ): ApiResponse<User>
 
     @DELETE("users/{id}")
     suspend fun deleteUser(
         @Path("id") id: String
-    )
+    ): ApiResponse<Unit>
 
 
     // =========================
@@ -138,28 +138,28 @@ interface ApiService {
     // =========================
 
     @GET("employees")
-    suspend fun getEmployees(): List<Employee>
+    suspend fun getEmployees(): ApiResponse<List<Employee>>
 
     @GET("employees/{id}")
     suspend fun getEmployee(
         @Path("id") id: String
-    ): Employee
+    ): ApiResponse<Employee>
 
     @POST("employees")
     suspend fun createEmployee(
         @Body employee: Employee
-    ): Employee
+    ): ApiResponse<Employee>
 
     @PUT("employees/{id}")
     suspend fun updateEmployee(
         @Path("id") id: String,
         @Body employee: Employee
-    ): Employee
+    ): ApiResponse<Employee>
 
     @DELETE("employees/{id}")
     suspend fun deleteEmployee(
         @Path("id") id: String
-    )
+    ): ApiResponse<Unit>
 
 
     // =========================

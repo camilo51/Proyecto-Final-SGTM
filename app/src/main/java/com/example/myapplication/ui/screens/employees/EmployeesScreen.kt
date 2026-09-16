@@ -1,49 +1,37 @@
 package com.example.myapplication.ui.screens.employees
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.data.model.Employee
 import com.example.myapplication.ui.theme.AppTheme
-
-data class Employee(
-    val documento: String,
-    val nombre: String,
-    val apellido: String,
-    val telefono: String,
-    val correo: String,
-    val especialidad: String,
-    val comision: String,
-    val estado: String
-)
-
-val mockEmployees = listOf(
-    Employee("77195816", "José", "Aparicio", "3008909195", "jogeapa@hotmail.com", "Mecánica General", "0%", "Activo"),
-    Employee("1076890876", "Isaac", "Vento", "3147929430", "—", "Mecánica general", "50%", "Activo"),
-    Employee("13345139", "Chunt", "Vento", "3045624769", "—", "Mecánica básica", "40%", "Activo")
-)
+import com.example.myapplication.ui.viewmodel.EmployeeViewModel
 
 @Composable
-fun EmployeesScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
+fun EmployeesScreen(
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    viewModel: EmployeeViewModel = viewModel()
+) {
+    val state by viewModel.uiState.collectAsState()
     val orange = MaterialTheme.colorScheme.primary
+
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedEmployee by remember { mutableStateOf<Employee?>(null) }
 
     AppTheme(darkTheme = true) {
         Surface(
@@ -86,7 +74,10 @@ fun EmployeesScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { /* Nuevo */ },
+                        onClick = { 
+                            selectedEmployee = null
+                            showDialog = true 
+                        },
                         modifier = Modifier.weight(1.3f),
                         colors = ButtonDefaults.buttonColors(containerColor = orange),
                         shape = RoundedCornerShape(12.dp),
@@ -95,13 +86,17 @@ fun EmployeesScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                         Text("+ Nuevo empleado", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
                     }
                     OutlinedButton(
-                        onClick = { /* Actualizar */ },
+                        onClick = { viewModel.refreshEmployees() },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
                         contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        if (state.isRefreshing) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                        }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Actualizar", fontSize = 13.sp, color = Color.White)
                     }
@@ -111,18 +106,20 @@ fun EmployeesScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { StatMiniCard("Registrados", "3") }
-                    item { StatMiniCard("Activos", "3") }
-                    item { StatMiniCard("En turno", "2") }
+                    item { StatMiniCard("Registrados", state.employees.size.toString()) }
+                    item { StatMiniCard("Filtrados", state.filteredEmployees.size.toString()) }
                 }
 
                 // Search Bar
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = state.searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Buscar empleados...", color = Color.White.copy(alpha = 0.4f)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.4f)) },
+                    trailingIcon = if (state.searchQuery.isNotEmpty()) {
+                        { IconButton(onClick = { viewModel.clearSearch() }) { Icon(Icons.Default.Close, null, tint = Color.White.copy(alpha = 0.4f)) } }
+                    } else null,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
@@ -135,23 +132,139 @@ fun EmployeesScreen(contentPadding: PaddingValues = PaddingValues(0.dp)) {
                     singleLine = true
                 )
 
-                // Filters
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SimpleFilterChip("Especialidad: Todas")
-                    SimpleFilterChip("Estado: Todos")
+                // Error Message
+                state.errorMessage?.let { error ->
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                 }
 
                 // Employee Cards List
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    mockEmployees.forEach { employee ->
-                        EmployeeCard(employee)
+                if (state.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = orange)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        state.visibleEmployees.forEach { employee ->
+                            EmployeeCard(
+                                employee = employee,
+                                onEdit = {
+                                    selectedEmployee = employee
+                                    showDialog = true
+                                },
+                                onDelete = { employee.id?.let { viewModel.deleteEmployee(it) } }
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
+
+        if (showDialog) {
+            EmployeeFormDialog(
+                employee = selectedEmployee,
+                onDismiss = { 
+                    showDialog = false
+                    viewModel.clearOperationMessage()
+                },
+                onSave = { name, email, phone, role ->
+                    if (selectedEmployee == null) {
+                        viewModel.createEmployee(name, email, phone, role)
+                    } else {
+                        viewModel.updateEmployee(selectedEmployee!!.copy(name = name, email = email, phone = phone, role = role))
+                    }
+                },
+                isSaving = state.isSaving,
+                operationMessage = state.operationMessage
+            )
+        }
     }
+
+    // Reset dialog when saving completes successfully
+    LaunchedEffect(state.creationVersion, state.updateVersion) {
+        if (showDialog && !state.isSaving && state.operationMessage?.contains("correctamente") == true) {
+            showDialog = false
+            viewModel.clearOperationMessage()
+        }
+    }
+}
+
+@Composable
+private fun EmployeeFormDialog(
+    employee: Employee?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String) -> Unit,
+    isSaving: Boolean,
+    operationMessage: String?
+) {
+    var name by remember { mutableStateOf(employee?.name ?: "") }
+    var email by remember { mutableStateOf(employee?.email ?: "") }
+    var phone by remember { mutableStateOf(employee?.phone ?: "") }
+    var role by remember { mutableStateOf(employee?.role ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (employee == null) "Nuevo Empleado" else "Editar Empleado") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth())
+                
+                var expanded by remember { mutableStateOf(false) }
+                val specialties = listOf("Mecánica general", "Mecánica básica", "Mecánica eléctrica")
+                
+                if (role.isBlank()) {
+                    role = specialties.first()
+                }
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = role,
+                        onValueChange = {},
+                        label = { Text("Rol/Especialidad") },
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { expanded = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Seleccionar especialidad")
+                            }
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        specialties.forEach { specialty ->
+                            DropdownMenuItem(
+                                text = { Text(specialty) },
+                                onClick = {
+                                    role = specialty
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                operationMessage?.let {
+                    Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(name, email, phone, role) },
+                enabled = !isSaving && name.isNotBlank()
+            ) {
+                if (isSaving) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                else Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Cancelar") }
+        }
+    )
 }
 
 @Composable
@@ -173,23 +286,11 @@ private fun StatMiniCard(label: String, value: String) {
 }
 
 @Composable
-private fun SimpleFilterChip(text: String) {
-    Surface(
-        color = Color.White.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-private fun EmployeeCard(employee: Employee) {
+private fun EmployeeCard(
+    employee: Employee,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     val orange = MaterialTheme.colorScheme.primary
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -208,35 +309,20 @@ private fun EmployeeCard(employee: Employee) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${employee.nombre} ${employee.apellido}",
+                        text = employee.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = employee.especialidad,
+                        text = employee.role,
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.White.copy(alpha = 0.9f)
                     )
                     Text(
-                        text = "Doc: ${employee.documento}",
+                        text = "ID: ${employee.id ?: "—"}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.5f)
-                    )
-                }
-                
-                // Status Badge
-                Surface(
-                    color = Color(0xFFDCFCE7).copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, Color(0xFF22C55E).copy(alpha = 0.2f))
-                ) {
-                    Text(
-                        text = employee.estado,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = Color(0xFF4ADE80),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -244,7 +330,7 @@ private fun EmployeeCard(employee: Employee) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.4f))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(employee.telefono, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                Text(employee.phone, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
             }
 
             HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
@@ -254,25 +340,13 @@ private fun EmployeeCard(employee: Employee) {
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Ganancias",
-                    modifier = Modifier
-                        .clickable { /* logic */ }
-                        .padding(8.dp),
-                    color = orange,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
+                TextButton(onClick = onEdit) {
+                    Text("Editar", color = orange, fontWeight = FontWeight.Bold)
+                }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Editar",
-                    modifier = Modifier
-                        .clickable { /* logic */ }
-                        .padding(8.dp),
-                    color = orange,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
