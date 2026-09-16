@@ -35,6 +35,10 @@ import com.example.myapplication.ui.screens.inventory.InventoryListScreen
 import com.example.myapplication.ui.screens.inventory.InventoryMovementsScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
 import com.example.myapplication.ui.screens.clients.ClientsScreen
+import com.example.myapplication.ui.screens.motorcycles.CreateMotorcycleScreen
+import com.example.myapplication.ui.screens.motorcycles.EditMotorcycleScreen
+import com.example.myapplication.ui.screens.motorcycles.MotorcycleDetailScreen
+import com.example.myapplication.ui.screens.motorcycles.MotorcyclesScreen
 import com.example.myapplication.ui.screens.orders.CreateOrderScreen
 import com.example.myapplication.ui.screens.orders.EditOrderScreen
 import com.example.myapplication.ui.screens.orders.OrderDetailScreen
@@ -43,6 +47,7 @@ import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.ClientViewModel
 import com.example.myapplication.ui.viewmodel.LoginViewModel
+import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 class MainActivity : ComponentActivity() {
@@ -67,6 +72,7 @@ fun MainApp() {
     val navController = rememberNavController()
     val loginViewModel: LoginViewModel = viewModel()
     val clientViewModel: ClientViewModel = viewModel()
+    val motorcycleViewModel: MotorcycleViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
     val uiState by loginViewModel.uiState.collectAsState()
 
@@ -209,6 +215,79 @@ fun MainApp() {
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a órdenes")
+            }
+        }
+        composable(AppRoutes.Motorcycles) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Motocicletas",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout
+                ) { padding ->
+                    MotorcyclesScreen(
+                        contentPadding = padding,
+                        onOpenMotorcycle = { id -> navController.navigate(AppRoutes.motorcycleDetail(id)) },
+                        onCreateMotorcycle = { navController.navigate(AppRoutes.CreateMotorcycle) },
+                        onEditMotorcycle = { id -> navController.navigate(AppRoutes.editMotorcycle(id)) },
+                        viewModel = motorcycleViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a motocicletas")
+            }
+        }
+        composable(AppRoutes.CreateMotorcycle) {
+            if (uiState.isAdmin) {
+                CreateMotorcycleScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    onCreated = { id ->
+                        navController.navigate(AppRoutes.motorcycleDetail(id)) {
+                            popUpTo(AppRoutes.CreateMotorcycle) { inclusive = true }
+                        }
+                    },
+                    viewModel = motorcycleViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear motocicletas")
+            }
+        }
+        composable(
+            route = AppRoutes.MotorcycleDetail,
+            arguments = listOf(navArgument("motorcycleId") { type = NavType.StringType })
+        ) { entry ->
+            val motorcycleId = entry.arguments?.getString("motorcycleId") ?: return@composable
+            if (uiState.isAdmin) {
+                MotorcycleDetailScreen(
+                    id = motorcycleId,
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    onEdit = { id -> navController.navigate(AppRoutes.editMotorcycle(id)) },
+                    viewModel = motorcycleViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para ver motocicletas")
+            }
+        }
+        composable(
+            route = AppRoutes.EditMotorcycle,
+            arguments = listOf(navArgument("motorcycleId") { type = NavType.StringType })
+        ) { entry ->
+            val motorcycleId = entry.arguments?.getString("motorcycleId") ?: return@composable
+            if (uiState.isAdmin) {
+                EditMotorcycleScreen(
+                    id = motorcycleId,
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    viewModel = motorcycleViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar motocicletas")
             }
         }
         composable(AppRoutes.CreateOrder) {
