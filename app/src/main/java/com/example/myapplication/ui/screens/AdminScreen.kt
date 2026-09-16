@@ -157,10 +157,6 @@ private fun DashboardHeader(userName: String?) {
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionButton("PDF")
-                ActionButton("Excel")
-            }
         }
         
         Button(
@@ -174,19 +170,6 @@ private fun DashboardHeader(userName: String?) {
             Spacer(modifier = Modifier.width(8.dp))
             Text("NUEVA ORDEN DE TRABAJO", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
         }
-    }
-}
-
-@Composable
-private fun ActionButton(text: String) {
-    OutlinedButton(
-        onClick = { /* Acción */ },
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
-    ) {
-        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 

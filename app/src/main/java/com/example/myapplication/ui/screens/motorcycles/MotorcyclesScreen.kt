@@ -6,13 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Close
@@ -67,8 +69,10 @@ fun MotorcyclesScreen(
 
     Column(
         modifier = Modifier
+            .fillMaxSize()
             .padding(contentPadding)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         MotorcycleHeader(
@@ -109,14 +113,12 @@ fun MotorcyclesScreen(
             state.isLoading && state.motorcycles.isEmpty() -> MotorcycleLoading()
             state.errorMessage != null && state.motorcycles.isEmpty() -> InlineMotorcycleMessage(
                 message = state.errorMessage.orEmpty(),
-                onRetry = viewModel::loadMotorcycles,
-                modifier = Modifier.weight(1f)
+                onRetry = viewModel::loadMotorcycles
             )
             state.motorcycles.isEmpty() -> MotorcycleEmpty(
                 message = "No hay motocicletas registradas",
                 actionLabel = "Nueva motocicleta",
-                onAction = onCreateMotorcycle,
-                modifier = Modifier.weight(1f)
+                onAction = onCreateMotorcycle
             )
             state.filteredMotorcycles.isEmpty() -> MotorcycleEmpty(
                 message = "No se encontraron motocicletas",
@@ -125,27 +127,15 @@ fun MotorcyclesScreen(
                     viewModel.onSearchQueryChange("")
                     viewModel.onStatusFilterChange(null)
                     viewModel.onBrandFilterChange(null)
-                },
-                modifier = Modifier.weight(1f)
-            )
-            else -> LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(
-                    items = state.filteredMotorcycles,
-                    key = { motorcycle -> motorcycle.id ?: "${motorcycle.plate}-${motorcycle.brand}" }
-                ) { motorcycle ->
-                    MotorcycleCard(
-                        motorcycle = motorcycle,
-                        owner = state.clients.firstOrNull { it.id == motorcycle.clientId },
-                        onOpen = { motorcycle.id?.let(onOpenMotorcycle) },
-                        onEdit = { motorcycle.id?.let(onEditMotorcycle) }
-                    )
                 }
+            )
+            else -> state.filteredMotorcycles.forEach { motorcycle ->
+                MotorcycleCard(
+                    motorcycle = motorcycle,
+                    owner = state.clients.firstOrNull { it.id == motorcycle.clientId },
+                    onOpen = { motorcycle.id?.let(onOpenMotorcycle) },
+                    onEdit = { motorcycle.id?.let(onEditMotorcycle) }
+                )
             }
         }
     }
