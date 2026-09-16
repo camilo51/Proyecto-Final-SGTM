@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,12 +27,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -154,17 +159,27 @@ private fun MotorcycleForm(
     viewModel: MotorcycleViewModel
 ) {
     val formKey = initial?.id ?: "new"
+    LaunchedEffect(formKey, initial?.clientId) {
+        viewModel.setFormClientId(initial?.clientId)
+    }
     var plate by rememberSaveable(formKey) { mutableStateOf(initial?.plate.orEmpty()) }
     var brand by rememberSaveable(formKey) { mutableStateOf(initial?.brand.orEmpty()) }
     var model by rememberSaveable(formKey) { mutableStateOf(initial?.model.orEmpty()) }
     var year by rememberSaveable(formKey) { mutableStateOf(initial?.year?.toString().orEmpty()) }
     var color by rememberSaveable(formKey) { mutableStateOf(initial?.color.orEmpty()) }
     var engineCc by rememberSaveable(formKey) { mutableStateOf(initial?.engineCc?.toString().orEmpty()) }
-    var clientId by rememberSaveable(formKey) { mutableStateOf(initial?.clientId) }
-    var status by rememberSaveable(formKey) { mutableStateOf(initial?.status ?: MotorcycleStatus.IN_SERVICE) }
     var notes by rememberSaveable(formKey) { mutableStateOf(initial?.notes.orEmpty()) }
-    var statusExpanded by rememberSaveable(formKey) { mutableStateOf(false) }
+    val status = initial?.status ?: MotorcycleStatus.IN_SERVICE
+    val plateFocusRequester = remember { FocusRequester() }
+    val brandFocusRequester = remember { FocusRequester() }
+    val modelFocusRequester = remember { FocusRequester() }
+    val yearFocusRequester = remember { FocusRequester() }
+    val colorFocusRequester = remember { FocusRequester() }
+    val engineCcFocusRequester = remember { FocusRequester() }
+    val ownerFocusRequester = remember { FocusRequester() }
+    val notesFocusRequester = remember { FocusRequester() }
 
+    val clientId = state.selectedClientId
     val selectedClient = state.clients.firstOrNull { it.id == clientId }
     val clientResults = state.filteredClients
 
@@ -183,23 +198,55 @@ private fun MotorcycleForm(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        MotorcycleTextField("Placa", plate, { plate = it }, state.isSaving)
-        MotorcycleTextField("Marca", brand, { brand = it }, state.isSaving)
-        MotorcycleTextField("Modelo", model, { model = it }, state.isSaving)
+        MotorcycleTextField(
+            label = "Placa",
+            value = plate,
+            onValueChange = { plate = it },
+            enabled = !state.isSaving,
+            focusRequester = plateFocusRequester,
+            onNext = { brandFocusRequester.requestFocus() }
+        )
+        MotorcycleTextField(
+            label = "Marca",
+            value = brand,
+            onValueChange = { brand = it },
+            enabled = !state.isSaving,
+            focusRequester = brandFocusRequester,
+            onNext = { modelFocusRequester.requestFocus() }
+        )
+        MotorcycleTextField(
+            label = "Modelo",
+            value = model,
+            onValueChange = { model = it },
+            enabled = !state.isSaving,
+            focusRequester = modelFocusRequester,
+            onNext = { yearFocusRequester.requestFocus() }
+        )
         MotorcycleTextField(
             label = "Año",
             value = year,
             onValueChange = { year = it.filter(Char::isDigit) },
             enabled = !state.isSaving,
-            keyboardType = KeyboardType.Number
+            keyboardType = KeyboardType.Number,
+            focusRequester = yearFocusRequester,
+            onNext = { colorFocusRequester.requestFocus() }
         )
-        MotorcycleTextField("Color", color, { color = it }, state.isSaving)
+        MotorcycleTextField(
+            label = "Color",
+            value = color,
+            onValueChange = { color = it },
+            enabled = !state.isSaving,
+            focusRequester = colorFocusRequester,
+            onNext = { engineCcFocusRequester.requestFocus() }
+        )
         MotorcycleTextField(
             label = "Cilindraje (cc)",
             value = engineCc,
             onValueChange = { engineCc = it.filter(Char::isDigit) },
             enabled = !state.isSaving,
-            keyboardType = KeyboardType.Number
+            keyboardType = KeyboardType.Number,
+            focusRequester = engineCcFocusRequester,
+            onNext = { ownerFocusRequester.requestFocus() }
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Propietario", style = MaterialTheme.typography.labelLarge)
@@ -207,11 +254,13 @@ private fun MotorcycleForm(
                 OutlinedTextField(
                     value = state.clientSearchQuery,
                     onValueChange = viewModel::onClientSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(ownerFocusRequester),
                     label = { Text("Buscar cliente") },
                     placeholder = { Text("Nombre, documento o teléfono") },
                     enabled = !state.isSaving,
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { notesFocusRequester.requestFocus() }),
                     colors = AppOutlinedTextFieldColors()
                 )
                 DropdownMenu(
@@ -232,7 +281,7 @@ private fun MotorcycleForm(
                                 }
                             },
                             onClick = {
-                                clientId = client.id
+                                client.id?.let(viewModel::selectClient)
                                 viewModel.clearClientSearchQuery()
                             }
                         )
@@ -243,34 +292,24 @@ private fun MotorcycleForm(
                 Text("Cargando propietarios…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                selectedClient?.name?.let { "Seleccionado: $it" } ?: "Sin propietario",
+                when {
+                    clientId == null -> "Sin propietario: se enviará client_id = null"
+                    selectedClient != null -> "✓ ${selectedClient.name.ifBlank { "Nombre no registrado" }} seleccionado"
+                    state.isLoadingClients -> "Cargando propietario…"
+                    else -> "Propietario no encontrado"
+                },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (clientId != null && selectedClient != null) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(
-                    onClick = { clientId = null; viewModel.clearClientSearchQuery() },
+                    onClick = { viewModel.clearSelectedClient(); viewModel.clearClientSearchQuery() },
                     enabled = !state.isSaving && clientId != null
                 ) { Text("Sin propietario") }
-            }
-        }
-
-        Box {
-            OutlinedButton(
-                onClick = { statusExpanded = true },
-                enabled = !state.isSaving,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Estado: $status") }
-            DropdownMenu(
-                expanded = statusExpanded,
-                onDismissRequest = { statusExpanded = false }
-            ) {
-                MotorcycleStatus.values.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = { status = option; statusExpanded = false }
-                    )
-                }
             }
         }
 
@@ -279,7 +318,9 @@ private fun MotorcycleForm(
             value = notes,
             onValueChange = { notes = it },
             enabled = !state.isSaving,
-            minLines = 3
+            minLines = 3,
+            focusRequester = notesFocusRequester,
+            imeAction = ImeAction.Done
         )
 
         state.operationMessage?.let { message ->
@@ -319,17 +360,22 @@ private fun MotorcycleTextField(
     onValueChange: (String) -> Unit,
     enabled: Boolean,
     keyboardType: KeyboardType = KeyboardType.Text,
-    minLines: Int = 1
+    minLines: Int = 1,
+    focusRequester: FocusRequester,
+    imeAction: ImeAction = ImeAction.Next,
+    onNext: () -> Unit = {},
+    onDone: () -> Unit = {}
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
         label = { Text(label) },
         enabled = enabled,
         singleLine = minLines == 1,
         minLines = minLines,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardActions = KeyboardActions(onNext = { onNext() }, onDone = { onDone() }),
         colors = AppOutlinedTextFieldColors()
     )
 }

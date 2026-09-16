@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
@@ -68,6 +69,7 @@ fun ClientsScreen(
     val state by viewModel.uiState.collectAsState()
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
     var editingClient by remember { mutableStateOf<Client?>(null) }
+    var deletingClient by remember { mutableStateOf<Client?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadClients()
@@ -82,6 +84,12 @@ fun ClientsScreen(
     LaunchedEffect(state.updateVersion) {
         if (state.updateVersion > 0) {
             editingClient = null
+        }
+    }
+
+    LaunchedEffect(state.deleteVersion) {
+        if (state.deleteVersion > 0) {
+            deletingClient = null
         }
     }
 
@@ -130,8 +138,8 @@ fun ClientsScreen(
             )
         }
 
-        if (!showCreateDialog && editingClient == null &&
-            (state.creationVersion > 0 || state.updateVersion > 0) &&
+        if (!showCreateDialog && editingClient == null && deletingClient == null &&
+            (state.creationVersion > 0 || state.updateVersion > 0 || state.deleteVersion > 0) &&
             state.operationMessage != null
         ) {
             SuccessMessage(state.operationMessage.orEmpty())
@@ -157,7 +165,12 @@ fun ClientsScreen(
                     onEdit = {
                         viewModel.clearOperationMessage()
                         editingClient = client
-                    }
+                    },
+                    onDelete = {
+                        viewModel.clearOperationMessage()
+                        deletingClient = client
+                    },
+                    isDeleting = state.deletingClientId == client.id
                 )
             }
         }
@@ -193,6 +206,21 @@ fun ClientsScreen(
                 viewModel.clearOperationMessage()
             },
             onSave = viewModel::updateClient
+        )
+    }
+
+    deletingClient?.let { client ->
+        DeleteClientDialog(
+            client = client,
+            isDeleting = state.isDeleting,
+            errorMessage = state.operationMessage,
+            onDismissRequest = {
+                if (!state.isDeleting) {
+                    deletingClient = null
+                    viewModel.clearOperationMessage()
+                }
+            },
+            onConfirm = { client.id?.let(viewModel::deleteClient) }
         )
     }
 }
@@ -538,7 +566,9 @@ private fun ClientFormField(
 @Composable
 private fun ClientCard(
     client: Client,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    isDeleting: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -577,12 +607,25 @@ private fun ClientCard(
                 )
                 IconButton(
                     onClick = onEdit,
-                    enabled = !client.id.isNullOrBlank()
+                    enabled = !client.id.isNullOrBlank() && !isDeleting
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Edit,
                         contentDescription = "Editar cliente"
                     )
+                }
+                IconButton(
+                    onClick = onDelete,
+                    enabled = !client.id.isNullOrBlank() && !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Eliminar cliente"
+                        )
+                    }
                 }
             }
 
@@ -601,6 +644,44 @@ private fun ClientCard(
             ClientInfoRow(Icons.Filled.Email, "Correo", client.email.orEmpty())
         }
     }
+}
+
+@Composable
+private fun DeleteClientDialog(
+    client: Client,
+    isDeleting: Boolean,
+    errorMessage: String?,
+    onDismissRequest: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isDeleting) onDismissRequest() },
+        title = { Text("Eliminar cliente") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("¿Deseas eliminar a ${clientDisplayName(client)}? Esta acción se enviará a la API.")
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(errorMessage, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm, enabled = !isDeleting) {
+                if (isDeleting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Eliminar")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest, enabled = !isDeleting) { Text("Cancelar") }
+        }
+    )
 }
 
 private fun clientDisplayName(client: Client): String {

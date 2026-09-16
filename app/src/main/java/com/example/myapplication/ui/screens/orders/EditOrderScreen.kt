@@ -70,7 +70,6 @@ private fun EditOrderForm(
     var clientId by rememberSaveable(order.id) { mutableStateOf(order.clientId) }
     var motorcycleId by rememberSaveable(order.id) { mutableStateOf(order.motorcycleId) }
     var description by rememberSaveable(order.id) { mutableStateOf(order.description) }
-    var status by rememberSaveable(order.id) { mutableStateOf(order.status) }
     var total by rememberSaveable(order.id) { mutableStateOf(order.total.toString()) }
 
     val state by viewModel.uiState.collectAsState()
@@ -96,14 +95,6 @@ private fun EditOrderForm(
             enabled = !isSaving
         )
         OutlinedTextField(
-            value = status,
-            onValueChange = { status = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Estado") },
-            singleLine = true,
-            enabled = !isSaving
-        )
-        OutlinedTextField(
             value = total,
             onValueChange = { total = it },
             modifier = Modifier.fillMaxWidth(),
@@ -119,7 +110,6 @@ private fun EditOrderForm(
                         clientId = clientId,
                         motorcycleId = motorcycleId,
                         description = description,
-                        status = status,
                         total = total.toDoubleOrNull() ?: -1.0
                     )
                 )

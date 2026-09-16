@@ -6,6 +6,7 @@ import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.repository.ClientRepository
 import com.example.myapplication.data.repository.MotorcycleRepository
 import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
+import com.example.myapplication.ui.viewmodel.MotorcycleInput
 import java.io.IOException
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.CoroutineScope
@@ -98,6 +99,35 @@ class MotorcycleViewModelTest {
         assertNull(repository.lastCreated?.clientId)
         assertEquals("Motocicleta creada correctamente", viewModel.uiState.value.operationMessage)
         assertEquals("3", viewModel.uiState.value.savedMotorcycleId)
+    }
+
+    @Test
+    fun selectedOwner_isStoredInViewModelAndUsedWhenCreating() {
+        val created = motorcycle("3", "NEW12A", "Suzuki", "En servicio", clientId = "10")
+        val repository = FakeMotorcycleRepository(values = listOf(created), created = created)
+        val viewModel = viewModel(
+            repository = repository,
+            clients = listOf(client("10", "Ana Gómez"))
+        )
+
+        viewModel.loadClients()
+        viewModel.selectClient("10")
+        viewModel.createMotorcycleInput(
+            MotorcycleInput(
+                plate = "NEW12A",
+                brand = "Suzuki",
+                model = "GN",
+                yearText = "2024",
+                color = "Negro",
+                engineCcText = "150",
+                clientId = null,
+                status = "En servicio",
+                notes = ""
+            )
+        )
+
+        assertEquals("10", viewModel.uiState.value.selectedClientId)
+        assertEquals("10", repository.lastCreated?.clientId)
     }
 
     @Test

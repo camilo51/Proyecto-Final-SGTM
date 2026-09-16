@@ -68,7 +68,7 @@ OrdersListScreen / CreateOrderScreen / OrderDetailScreen / EditOrderScreen
 
 El modelo Android `Order` sólo contiene `id`, `clientId`, `motorcycleId`, `description`, `status` y `total`. Por eso la UI muestra únicamente esos datos y no inventa número de orden, fechas, técnicos, servicios, repuestos, historial o pagos.
 
-El cambio de estado se realiza mediante el `PUT /orders/{id}` existente, enviando una copia del `Order` con el `status` seleccionado. Los estados disponibles para el selector se obtienen de las órdenes cargadas; no se inventa una lista de estados.
+El cambio de estado se realiza desde el chip de la orden mediante el `PUT /orders/{id}` existente, enviando una copia del `Order` con el `status` seleccionado. Como `Motorcycle` también expone `status` y existe `PUT /motorcycles/{id}`, Android actualiza la motocicleta relacionada con su representación vigente para mantener ambos estados alineados. El selector conserva los estados que devuelve la API y muestra también los cuatro estados operativos ya definidos por el módulo de motocicletas.
 
 No existen en el `ApiService` actual endpoints Android para:
 

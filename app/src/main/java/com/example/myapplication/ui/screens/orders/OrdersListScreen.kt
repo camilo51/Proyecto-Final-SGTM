@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -58,6 +59,7 @@ import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
+import com.example.myapplication.ui.viewmodel.MotorcycleStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import java.util.Locale
 
@@ -70,6 +72,7 @@ fun OrdersListScreen(
     viewModel: OrderViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val availableOrderStatuses = (state.statuses + MotorcycleStatus.values).distinct()
 
     LaunchedEffect(Unit) {
         viewModel.loadOrders()
@@ -182,7 +185,10 @@ fun OrdersListScreen(
                     client = state.clients.firstOrNull { it.id == order.clientId },
                     motorcycle = state.motorcycles.firstOrNull { it.id == order.motorcycleId },
                     onClick = { order.id?.let(onOpenOrder) },
-                    onEdit = { order.id?.let(onEditOrder) }
+                    onEdit = { order.id?.let(onEditOrder) },
+                    statuses = (availableOrderStatuses + order.status).filter(String::isNotBlank).distinct(),
+                    isUpdatingStatus = state.updatingOrderId == order.id,
+                    onStatusChange = { status -> order.id?.let { viewModel.updateOrderStatus(it, status) } }
                 )
             }
         }
@@ -341,7 +347,10 @@ private fun OrderCard(
     client: Client?,
     motorcycle: Motorcycle?,
     onClick: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    statuses: List<String>,
+    isUpdatingStatus: Boolean,
+    onStatusChange: (String) -> Unit
 ) {
     val clientLabel = client?.name?.takeIf(String::isNotBlank) ?: "Cliente ${order.clientId}"
     val motorcycleLabel = motorcycle?.let { "${it.brand} ${it.model} · ${it.plate}" }
@@ -375,7 +384,29 @@ private fun OrderCard(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                StatusBadge(order.status, modifier = Modifier.weight(1f))
+                var statusMenuExpanded by remember(order.id) { mutableStateOf(false) }
+                Box(modifier = Modifier.weight(1f)) {
+                    StatusBadge(
+                        status = order.status,
+                        isLoading = isUpdatingStatus,
+                        enabled = !isUpdatingStatus,
+                        onClick = { statusMenuExpanded = true }
+                    )
+                    DropdownMenu(
+                        expanded = statusMenuExpanded,
+                        onDismissRequest = { statusMenuExpanded = false }
+                    ) {
+                        statuses.forEach { status ->
+                            DropdownMenuItem(
+                                text = { Text(status) },
+                                onClick = {
+                                    statusMenuExpanded = false
+                                    onStatusChange(status)
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Text(
@@ -417,7 +448,7 @@ private fun OrderCard(
                     IconButton(onClick = onClick) {
                         Icon(Icons.Filled.Info, contentDescription = "Ver orden")
                     }
-                    IconButton(onClick = onEdit) {
+                    IconButton(onClick = onEdit, enabled = !isUpdatingStatus) {
                         Icon(Icons.Filled.Edit, contentDescription = "Editar orden")
                     }
                 }
@@ -427,22 +458,38 @@ private fun OrderCard(
 }
 
 @Composable
-private fun StatusBadge(status: String, modifier: Modifier = Modifier) {
+private fun StatusBadge(
+    status: String,
+    isLoading: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val color = orderStatusColor(status)
     Surface(
-        modifier = modifier,
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(50),
         color = color.copy(alpha = 0.16f)
     ) {
-        Text(
-            text = status.ifBlank { "Sin estado" },
+        Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            color = color,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = status.ifBlank { "Sin estado" },
+                color = color,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = color)
+            } else {
+                Text("▼", color = color, style = MaterialTheme.typography.labelSmall)
+            }
+        }
     }
 }
 

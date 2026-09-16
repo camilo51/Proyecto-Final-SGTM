@@ -297,6 +297,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = onLogout
                 ) { padding ->
                     ReportsScreen(

@@ -30,10 +30,13 @@ data class ClientUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isSaving: Boolean = false,
+    val isDeleting: Boolean = false,
+    val deletingClientId: String? = null,
     val errorMessage: String? = null,
     val operationMessage: String? = null,
     val creationVersion: Int = 0,
-    val updateVersion: Int = 0
+    val updateVersion: Int = 0,
+    val deleteVersion: Int = 0
 ) {
     val totalPages: Int
         get() = if (filteredClients.isEmpty()) {
@@ -267,6 +270,48 @@ class ClientViewModel(
 
     fun clearOperationMessage() {
         _uiState.update { it.copy(operationMessage = null) }
+    }
+
+    fun deleteClient(clientId: String) {
+        if (_uiState.value.isDeleting || clientId.isBlank()) return
+
+        workScope.launch {
+            _uiState.update {
+                it.copy(
+                    isDeleting = true,
+                    deletingClientId = clientId,
+                    operationMessage = null,
+                    errorMessage = null
+                )
+            }
+            try {
+                clientRepository.deleteClient(clientId)
+                val refreshedClients = runCatching { clientRepository.getClients() }
+                val clients = refreshedClients.getOrNull()
+                _uiState.update { state ->
+                    state.copy(
+                        clients = clients ?: state.clients.filterNot { client -> client.id == clientId },
+                        isDeleting = false,
+                        deletingClientId = null,
+                        operationMessage = if (clients == null) {
+                            "Cliente eliminado correctamente, pero no se pudo actualizar la lista."
+                        } else {
+                            "Cliente eliminado correctamente"
+                        },
+                        deleteVersion = state.deleteVersion + 1
+                    ).withFilters()
+                }
+            } catch (exception: Exception) {
+                logFailure("DELETE /clients/$clientId", exception)
+                _uiState.update {
+                    it.copy(
+                        isDeleting = false,
+                        deletingClientId = null,
+                        operationMessage = messageFor(exception, "No se pudo eliminar el cliente")
+                    )
+                }
+            }
+        }
     }
 
     private fun ClientUiState.withFilters(): ClientUiState {

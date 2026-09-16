@@ -204,7 +204,11 @@ interface ApiService {
     // =========================
 
     @GET("motorcycles")
-    suspend fun getMotorcycles(): ApiResponse<List<Motorcycle>>
+    suspend fun getMotorcycles(
+        @Query("client_id") clientId: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
+    ): ApiResponse<List<Motorcycle>>
 
     @GET("motorcycles/{id}")
     suspend fun getMotorcycle(
@@ -213,7 +217,7 @@ interface ApiService {
 
     @POST("motorcycles")
     suspend fun createMotorcycle(
-        @Body motorcycle: Motorcycle
+        @Body motorcycle: JsonObject
     ): ApiResponse<Motorcycle>
 
     @PUT("motorcycles/{id}")

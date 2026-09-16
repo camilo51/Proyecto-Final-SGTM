@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
+import com.example.myapplication.ui.viewmodel.MotorcycleStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 @Composable
@@ -41,7 +43,10 @@ fun OrderDetailScreen(
     val state by viewModel.uiState.collectAsState()
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
-    LaunchedEffect(orderId) { viewModel.loadOrder(orderId) }
+    LaunchedEffect(orderId) {
+        viewModel.loadOrder(orderId)
+        viewModel.loadReferences()
+    }
     LaunchedEffect(state.deletedOrderId) {
         if (state.deletedOrderId == orderId) {
             viewModel.consumeOperationEvent()
@@ -65,8 +70,9 @@ fun OrderDetailScreen(
             motorcycleLabel = state.motorcycles.firstOrNull { it.id == order.motorcycleId }?.let {
                 "${it.brand} ${it.model} · ${it.plate}"
             },
-            statuses = (state.statuses + order.status).filter(String::isNotBlank).distinct(),
+            statuses = (state.statuses + MotorcycleStatus.values + order.status).filter(String::isNotBlank).distinct(),
             isSaving = state.isSaving,
+            isUpdatingStatus = state.updatingOrderId == order.id,
             isDeleting = state.isDeleting,
             operationMessage = state.operationMessage,
             onStatusChange = viewModel::changeStatus,
@@ -104,6 +110,7 @@ private fun OrderDetailContent(
     motorcycleLabel: String?,
     statuses: List<String>,
     isSaving: Boolean,
+    isUpdatingStatus: Boolean,
     isDeleting: Boolean,
     operationMessage: String?,
     onStatusChange: (String) -> Unit,
@@ -122,7 +129,17 @@ private fun OrderDetailContent(
             FilterChip(
                 selected = false,
                 onClick = { statusMenuExpanded = true },
-                label = { Text(order.status) }
+                enabled = !isSaving && !isDeleting && !isUpdatingStatus,
+                label = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(order.status.ifBlank { "Sin estado" })
+                        if (isUpdatingStatus) {
+                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("▼", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
             )
         }
         DropdownMenu(
@@ -146,15 +163,15 @@ private fun OrderDetailContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
-        Button(onClick = onEdit, enabled = !isSaving && !isDeleting, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onEdit, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
             Text("Editar orden")
         }
-        Button(onClick = onDelete, enabled = !isSaving && !isDeleting, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onDelete, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
             Text("Eliminar orden")
         }
-        TextButton(onClick = onBack, enabled = !isSaving && !isDeleting, modifier = Modifier.fillMaxWidth()) {
+        TextButton(onClick = onBack, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
             Text("Volver")
         }
     }
