@@ -304,6 +304,21 @@ class ClientViewModelTest {
         )
     }
 
+    @Test
+    fun deleteClient_success_removesClientAndRefreshesList() {
+        val repository = FakeClientRepository(
+            values = listOf(client("11", "Cliente para eliminar"))
+        )
+        val viewModel = viewModel(repository)
+        viewModel.loadClients()
+
+        viewModel.deleteClient("11")
+
+        assertEquals(1, repository.deleteCalls)
+        assertTrue(viewModel.uiState.value.clients.isEmpty())
+        assertEquals("Cliente eliminado correctamente", viewModel.uiState.value.operationMessage)
+    }
+
     private fun viewModel(repository: ClientRepository): ClientViewModel = ClientViewModel(
         clientRepository = repository,
         testScope = CoroutineScope(Dispatchers.Unconfined)
@@ -329,9 +344,11 @@ private class FakeClientRepository(
     private val refreshFailure: Exception? = null,
     private val updated: Client? = null
 ) : ClientRepository(noOpApiService) {
+    private val deletedIds = mutableSetOf<String>()
     var calls = 0
     var createCalls = 0
     var updateCalls = 0
+    var deleteCalls = 0
     var lastCreated: Client? = null
 
     override suspend fun getClients(): List<Client> {
@@ -340,7 +357,7 @@ private class FakeClientRepository(
             refreshFailure?.let { throw it }
         }
         failure?.let { throw it }
-        return values
+        return values.filterNot { it.id in deletedIds }
     }
 
     override suspend fun createClient(client: Client): Client {
@@ -354,6 +371,12 @@ private class FakeClientRepository(
         updateCalls++
         failure?.let { throw it }
         return updated ?: client
+    }
+
+    override suspend fun deleteClient(id: String) {
+        deleteCalls++
+        failure?.let { throw it }
+        deletedIds += id
     }
 }
 

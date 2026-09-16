@@ -27,7 +27,7 @@ open class ClientRepository(
         return apiService.updateClient(id, client).requireData()
     }
 
-    suspend fun deleteClient(id: String) {
+    open suspend fun deleteClient(id: String) {
         apiService.deleteClient(id)
     }
 }

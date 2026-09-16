@@ -14,6 +14,7 @@ import com.example.myapplication.data.model.ForgotPasswordResponse
 import com.example.myapplication.data.model.LoginRequest
 import com.example.myapplication.data.model.LoginResponse
 import com.example.myapplication.data.model.LogoutResponse
+import com.example.myapplication.data.model.ChangePasswordRequest
 import com.example.myapplication.data.model.RegisterRequest
 import com.example.myapplication.data.model.RegisterResponse
 import com.example.myapplication.data.model.ResetPasswordRequest
@@ -73,6 +74,14 @@ interface ApiService {
         @Body request: ResetPasswordRequest
     ): ResetPasswordResponse
 
+    @GET("auth/me")
+    suspend fun getCurrentUser(): ApiResponse<com.example.myapplication.data.model.UserDto>
+
+    @PUT("auth/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
+    ): ApiResponse<Any?>
+
 
     // =========================
     // USERS
@@ -95,7 +104,7 @@ interface ApiService {
     suspend fun updateUser(
         @Path("id") id: String,
         @Body user: User
-    ): User
+    ): ApiResponse<User>
 
     @DELETE("users/{id}")
     suspend fun deleteUser(
@@ -195,7 +204,11 @@ interface ApiService {
     // =========================
 
     @GET("motorcycles")
-    suspend fun getMotorcycles(): ApiResponse<List<Motorcycle>>
+    suspend fun getMotorcycles(
+        @Query("client_id") clientId: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
+    ): ApiResponse<List<Motorcycle>>
 
     @GET("motorcycles/{id}")
     suspend fun getMotorcycle(
@@ -204,7 +217,7 @@ interface ApiService {
 
     @POST("motorcycles")
     suspend fun createMotorcycle(
-        @Body motorcycle: Motorcycle
+        @Body motorcycle: JsonObject
     ): ApiResponse<Motorcycle>
 
     @PUT("motorcycles/{id}")

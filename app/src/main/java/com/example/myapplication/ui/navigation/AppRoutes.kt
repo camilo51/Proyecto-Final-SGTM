@@ -5,6 +5,7 @@ import android.net.Uri
 object AppRoutes {
     const val Login = "login"
     const val Admin = "admin"
+    const val Profile = "profile"
     const val Home = "home"
     const val Clients = "clients"
     const val Motorcycles = "motorcycles"
