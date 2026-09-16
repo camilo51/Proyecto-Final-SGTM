@@ -21,6 +21,7 @@ import com.example.myapplication.data.model.ResetPasswordRequest
 import com.example.myapplication.data.model.ResetPasswordResponse
 import com.example.myapplication.data.model.common.ApiResponse
 import com.example.myapplication.data.model.common.PaginatedApiResponse
+import com.google.gson.JsonObject
 import com.example.myapplication.data.model.inventory.CreateInventoryRequest
 import com.example.myapplication.data.model.inventory.DeleteInventoryRequest
 import com.example.myapplication.data.model.inventory.InventoryAlertDto
@@ -195,23 +196,23 @@ interface ApiService {
     // =========================
 
     @GET("motorcycles")
-    suspend fun getMotorcycles(): List<Motorcycle>
+    suspend fun getMotorcycles(): ApiResponse<List<Motorcycle>>
 
     @GET("motorcycles/{id}")
     suspend fun getMotorcycle(
         @Path("id") id: String
-    ): Motorcycle
+    ): ApiResponse<Motorcycle>
 
     @POST("motorcycles")
     suspend fun createMotorcycle(
         @Body motorcycle: Motorcycle
-    ): Motorcycle
+    ): ApiResponse<Motorcycle>
 
     @PUT("motorcycles/{id}")
     suspend fun updateMotorcycle(
         @Path("id") id: String,
-        @Body motorcycle: Motorcycle
-    ): Motorcycle
+        @Body motorcycle: JsonObject
+    ): ApiResponse<Motorcycle>
 
     @DELETE("motorcycles/{id}")
     suspend fun deleteMotorcycle(

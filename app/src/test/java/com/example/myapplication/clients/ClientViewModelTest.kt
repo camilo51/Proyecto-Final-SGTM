@@ -1,8 +1,8 @@
 package com.example.myapplication.clients
 
-import com.example.myapplication.data.api.ApiResponse
 import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.common.ApiResponse
 import com.example.myapplication.data.repository.ClientRepository
 import com.example.myapplication.ui.viewmodel.ClientViewModel
 import com.google.gson.Gson
