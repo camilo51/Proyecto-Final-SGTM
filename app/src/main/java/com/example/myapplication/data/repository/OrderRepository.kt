@@ -8,7 +8,7 @@ open class OrderRepository(
     private val apiService: ApiService
 ) {
     open suspend fun getOrders(): List<Order> {
-        return apiService.getOrders().requireData()
+        return apiService.getOrders().requireData().items
     }
 
     open suspend fun getOrder(id: String): Order {

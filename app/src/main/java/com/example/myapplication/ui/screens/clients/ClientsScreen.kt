@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -91,7 +89,8 @@ fun ClientsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ClientsHeader(
@@ -139,38 +138,27 @@ fun ClientsScreen(
         }
 
         when {
-            state.isLoading && state.clients.isEmpty() -> LoadingMessage(Modifier.weight(1f))
+            state.isLoading && state.clients.isEmpty() -> LoadingMessage(Modifier)
             state.errorMessage != null && state.clients.isEmpty() -> ErrorMessage(
                 message = state.errorMessage.orEmpty(),
-                onRetry = viewModel::loadClients,
-                modifier = Modifier.weight(1f)
+                onRetry = viewModel::loadClients
             )
             state.clients.isEmpty() -> EmptyMessage(
-                message = "No hay clientes registrados",
-                modifier = Modifier.weight(1f)
+                message = "No hay clientes registrados"
             )
             state.filteredClients.isEmpty() -> EmptyMessage(
                 message = "No se encontraron clientes con esa búsqueda",
                 actionLabel = "Limpiar búsqueda",
-                onAction = viewModel::clearSearch,
-                modifier = Modifier.weight(1f)
+                onAction = viewModel::clearSearch
             )
-            else -> LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(state.visibleClients) { client ->
-                    ClientCard(
-                        client = client,
-                        onEdit = {
-                            viewModel.clearOperationMessage()
-                            editingClient = client
-                        }
-                    )
-                }
+            else -> state.visibleClients.forEach { client ->
+                ClientCard(
+                    client = client,
+                    onEdit = {
+                        viewModel.clearOperationMessage()
+                        editingClient = client
+                    }
+                )
             }
         }
 

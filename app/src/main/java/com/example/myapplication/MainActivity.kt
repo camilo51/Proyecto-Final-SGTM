@@ -44,6 +44,7 @@ import com.example.myapplication.ui.screens.orders.CreateOrderScreen
 import com.example.myapplication.ui.screens.orders.EditOrderScreen
 import com.example.myapplication.ui.screens.orders.OrderDetailScreen
 import com.example.myapplication.ui.screens.orders.OrdersListScreen
+import com.example.myapplication.ui.screens.reports.ReportsScreen
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.ClientViewModel
@@ -287,6 +288,24 @@ fun MainApp() {
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a órdenes")
+            }
+        }
+        composable(AppRoutes.Reports) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Reportes",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout
+                ) { padding ->
+                    ReportsScreen(
+                        contentPadding = padding,
+                        onOpenInventory = { id -> navController.navigate("inventory/detail/$id") }
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a reportes")
             }
         }
         composable(AppRoutes.Motorcycles) {
