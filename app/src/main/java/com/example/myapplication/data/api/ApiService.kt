@@ -146,7 +146,11 @@ interface ApiService {
     // =========================
 
     @GET("employees")
-    suspend fun getEmployees(): List<Employee>
+    suspend fun getEmployees(
+        @Query("status") status: String = "Activo",
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
+    ): PaginatedApiResponse<Employee>
 
     @GET("employees/{id}")
     suspend fun getEmployee(

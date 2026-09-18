@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
+import com.example.myapplication.ui.viewmodel.OrderValidator
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import com.example.myapplication.ui.viewmodel.OrderStatus
 
@@ -47,6 +48,8 @@ fun CreateOrderScreen(
     var description by rememberSaveable { mutableStateOf("") }
     var status by rememberSaveable { mutableStateOf(OrderStatus.PENDING) }
     var laborCost by rememberSaveable { mutableStateOf("") }
+    var discount by rememberSaveable { mutableStateOf("0") }
+    var assignedEmployeeId by rememberSaveable { mutableStateOf("") }
 
     val clientId = state.selectedClientId.orEmpty()
     val motorcycleId = state.selectedMotorcycleId.orEmpty()
@@ -54,6 +57,22 @@ fun CreateOrderScreen(
     val selectedClient = state.selectedClient
     val selectedMotorcycle = state.selectedMotorcycle
     val statusOptions = OrderStatus.changeableValues
+    val employeeOptions = listOf(OrderDropdownOption("", "Sin asignar")) + state.employees.mapNotNull { employee ->
+        employee.id?.let { id ->
+            val fullName = listOf(employee.name, employee.lastName)
+                .filter(String::isNotBlank)
+                .joinToString(" ")
+                .ifBlank { "Técnico sin nombre" }
+            OrderDropdownOption(
+                id = id,
+                label = listOf(fullName, employee.specialty)
+                    .filter(String::isNotBlank)
+                    .joinToString(" · "),
+                searchText = listOf(fullName, employee.specialty, employee.phone, employee.email.orEmpty())
+                    .joinToString(" ")
+            )
+        }
+    }
     val clientOptions = state.clients.mapNotNull { client ->
         client.id?.let {
             OrderDropdownOption(
@@ -117,11 +136,44 @@ fun CreateOrderScreen(
             onSelected = viewModel::selectMotorcycle
         )
         selectedMotorcycle?.let { MotorcycleSelectionSummary(it) }
+        OrderReferenceDropdown(
+            label = "Técnico asignado",
+            selectedId = assignedEmployeeId,
+            options = employeeOptions,
+            enabled = !state.isSaving,
+            searchable = true,
+            searchPlaceholder = "Nombre, especialidad o teléfono",
+            onSelected = { assignedEmployeeId = it }
+        )
+        OutlinedTextField(
+            value = laborCost,
+            onValueChange = { laborCost = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Mano de obra ($)") },
+            singleLine = true,
+            enabled = !state.isSaving,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next
+            )
+        )
+        OutlinedTextField(
+            value = discount,
+            onValueChange = { discount = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Descuento ($)") },
+            singleLine = true,
+            enabled = !state.isSaving,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next
+            )
+        )
         OutlinedTextField(
             value = description,
             onValueChange = { if (it.length <= 2000) description = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Descripción") },
+            label = { Text("Descripción del problema") },
             supportingText = { Text("${description.length}/2000") },
             minLines = 4,
             enabled = !state.isSaving
@@ -133,17 +185,10 @@ fun CreateOrderScreen(
             enabled = !state.isSaving,
             onSelected = { status = it }
         )
-        OutlinedTextField(
-            value = laborCost,
-            onValueChange = { laborCost = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Mano de obra (opcional)") },
-            singleLine = true,
-            enabled = !state.isSaving,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Done
-            )
+
+        OrderTotalsPreview(
+            laborCost = OrderValidator.parseMoney(laborCost) ?: 0.0,
+            discount = OrderValidator.parseMoney(discount) ?: 0.0
         )
 
         state.operationMessage?.let { message ->
@@ -151,7 +196,17 @@ fun CreateOrderScreen(
         }
 
         Button(
-            onClick = { viewModel.createOrder(clientId, motorcycleId, description, status, laborCost) },
+            onClick = {
+                viewModel.createOrder(
+                    clientId = clientId,
+                    motorcycleId = motorcycleId,
+                    description = description,
+                    status = status,
+                    laborCostText = laborCost,
+                    assignedEmployeeId = assignedEmployeeId,
+                    discountText = discount
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.isSaving
         ) {
@@ -200,5 +255,38 @@ private fun SelectionSummaryCard(title: String, primary: String, secondary: Stri
                 Text(secondary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+}
+
+@Composable
+private fun OrderTotalsPreview(laborCost: Double, discount: Double) {
+    val services = 0.0
+    val parts = 0.0
+    val subtotal = laborCost + services + parts
+    val total = (subtotal - discount).coerceAtLeast(0.0)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Resumen calculado", style = MaterialTheme.typography.titleSmall)
+            OrderTotalLine("Mano de obra", laborCost)
+            OrderTotalLine("Servicios", services)
+            OrderTotalLine("Repuestos", parts)
+            OrderTotalLine("Descuento", -discount)
+            OrderTotalLine("Total", total, emphasized = true)
+        }
+    }
+}
+
+@Composable
+private fun OrderTotalLine(label: String, amount: Double, emphasized: Boolean = false) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = if (emphasized) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
+        Text(formatOrderMoney(amount), style = if (emphasized) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium)
     }
 }

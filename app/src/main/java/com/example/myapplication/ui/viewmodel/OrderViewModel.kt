@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.BuildConfig
 import com.example.myapplication.data.api.RetrofitClient
 import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.Employee
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.data.repository.ClientRepository
+import com.example.myapplication.data.repository.EmployeeRepository
 import com.example.myapplication.data.repository.MotorcycleRepository
 import com.example.myapplication.data.repository.OrderRepository
 import com.google.gson.JsonParser
@@ -32,6 +34,7 @@ data class OrderUiState(
     val selectedOrder: Order? = null,
     val clients: List<Client> = emptyList(),
     val motorcycles: List<Motorcycle> = emptyList(),
+    val employees: List<Employee> = emptyList(),
     val motorcyclesForSelectedClient: List<Motorcycle> = emptyList(),
     val selectedClientId: String? = null,
     val selectedMotorcycleId: String? = null,
@@ -89,6 +92,7 @@ class OrderViewModel(
     private val orderRepository: OrderRepository = OrderRepository(RetrofitClient.apiService),
     private val clientRepository: ClientRepository = ClientRepository(RetrofitClient.apiService),
     private val motorcycleRepository: MotorcycleRepository = MotorcycleRepository(RetrofitClient.apiService),
+    private val employeeRepository: EmployeeRepository = EmployeeRepository(RetrofitClient.apiService),
     private val testScope: CoroutineScope? = null
 ) : ViewModel() {
 
@@ -147,15 +151,21 @@ class OrderViewModel(
         workScope.launch {
             _uiState.update { it.copy(isLoadingReferences = true) }
             try {
-                val (clients, motorcycles) = coroutineScope {
+                val (clients, motorcycles, employees) = coroutineScope {
                     val clientsDeferred = async { clientRepository.getClients() }
                     val motorcyclesDeferred = async { motorcycleRepository.getMotorcycles() }
-                    clientsDeferred.await() to motorcyclesDeferred.await()
+                    val employeesDeferred = async { employeeRepository.getEmployees() }
+                    Triple(
+                        clientsDeferred.await(),
+                        motorcyclesDeferred.await(),
+                        employeesDeferred.await()
+                    )
                 }
                 _uiState.update {
                     it.copy(
                         clients = clients,
                         motorcycles = motorcycles,
+                        employees = employees,
                         isLoadingReferences = false,
                         referencesLoaded = true
                     ).withFilters()
@@ -164,7 +174,7 @@ class OrderViewModel(
                 _uiState.update {
                     it.copy(
                         isLoadingReferences = false,
-                        errorMessage = messageFor(exception, "No se pudieron cargar clientes y motocicletas")
+                        errorMessage = messageFor(exception, "No se pudieron cargar clientes, motocicletas y técnicos")
                     )
                 }
             }
@@ -266,7 +276,9 @@ class OrderViewModel(
         motorcycleId: String,
         description: String,
         status: String,
-        laborCostText: String
+        laborCostText: String,
+        assignedEmployeeId: String = "",
+        discountText: String = "0"
     ) {
         if (_uiState.value.isSaving) return
         val state = _uiState.value
@@ -281,12 +293,19 @@ class OrderViewModel(
                 return
             }
         }
+        if (assignedEmployeeId.isNotBlank() && state.employees.isNotEmpty() &&
+            state.employees.none { it.id == assignedEmployeeId }
+        ) {
+            _uiState.update { it.copy(operationMessage = "Selecciona un técnico válido") }
+            return
+        }
         val validationError = OrderValidator.validateCreate(
             clientId,
             motorcycleId,
             description,
             status,
-            laborCostText
+            laborCostText,
+            discountText
         )
         if (validationError != null) {
             _uiState.update { it.copy(operationMessage = validationError) }
@@ -301,7 +320,9 @@ class OrderViewModel(
                         motorcycleId = motorcycleId,
                         description = description.trim(),
                         status = status.trim(),
-                        laborCost = laborCostText.toDoubleOrNull()
+                        assignedEmployeeId = assignedEmployeeId.takeIf(String::isNotBlank),
+                        laborCost = OrderValidator.parseMoney(laborCostText),
+                        discount = OrderValidator.parseMoney(discountText) ?: 0.0
                     )
                 )
                 val saved = if (status != OrderStatus.PENDING && created.id != null) {
@@ -497,7 +518,7 @@ class OrderViewModel(
             val safeBody = readSafeHttpError(exception)
             logException(exception, safeBody)
             when (exception.code()) {
-            400 -> {
+            400, 422 -> {
                 safeBody ?: "Los datos enviados no son válidos"
             }
             401 -> {
@@ -578,15 +599,59 @@ object OrderValidator {
         motorcycleId: String,
         description: String,
         status: String,
-        laborCostText: String
+        laborCostText: String,
+        discountText: String
     ): String? {
         val commonError = validateReferences(clientId, motorcycleId, description)
         if (commonError != null) return commonError
         if (status !in OrderStatus.changeableValues) return "Selecciona un estado válido"
-        if (laborCostText.isBlank()) return null
-        val laborCost = laborCostText.toDoubleOrNull() ?: return "La mano de obra no es válida"
-        if (!laborCost.isFinite() || laborCost < 0) return "La mano de obra no puede ser negativa"
+        val laborCost = parseMoney(laborCostText)
+        if (laborCostText.isNotBlank() && laborCost == null) return "La mano de obra no es válida"
+        if (laborCost != null && (!laborCost.isFinite() || laborCost < 0)) {
+            return "La mano de obra no puede ser negativa"
+        }
+        val discount = parseMoney(discountText)
+        if (discountText.isNotBlank() && discount == null) return "El descuento no es válido"
+        if (discount != null && (!discount.isFinite() || discount < 0)) {
+            return "El descuento no puede ser negativo"
+        }
+        if ((discount ?: 0.0) > (laborCost ?: 0.0)) {
+            return "El descuento no puede ser mayor que la mano de obra"
+        }
         return null
+    }
+
+    fun parseMoney(text: String): Double? {
+        val value = text.trim()
+            .replace("$", "")
+            .replace(" ", "")
+        if (value.isBlank()) return null
+
+        val normalized = when {
+            value.contains('.') && value.contains(',') -> {
+                if (value.lastIndexOf(',') > value.lastIndexOf('.')) {
+                    value.replace(".", "").replace(',', '.')
+                } else {
+                    value.replace(",", "")
+                }
+            }
+            value.count { it == '.' } > 1 -> value.replace(".", "")
+            value.count { it == ',' } > 1 -> value.replace(",", "")
+            value.contains(',') -> {
+                val decimals = value.substringAfterLast(',')
+                if (decimals.length in 1..2) value.replace(',', '.') else value.replace(",", "")
+            }
+            value.contains('.') -> {
+                val decimals = value.substringAfterLast('.')
+                if (decimals.length == 3 && value.substringBeforeLast('.').all(Char::isDigit)) {
+                    value.replace(".", "")
+                } else {
+                    value
+                }
+            }
+            else -> value
+        }
+        return normalized.toDoubleOrNull()
     }
 
     fun validate(

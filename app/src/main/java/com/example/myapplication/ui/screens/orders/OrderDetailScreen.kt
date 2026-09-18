@@ -70,6 +70,13 @@ fun OrderDetailScreen(
             motorcycleLabel = state.motorcycles.firstOrNull { it.id == order.motorcycleId }?.let {
                 "${it.brand} ${it.model} · ${it.plate}"
             },
+            employeeLabel = state.employees.firstOrNull { it.id == order.assignedEmployeeId }
+                ?.let { employee ->
+                    listOf(employee.name, employee.lastName)
+                        .filter(String::isNotBlank)
+                        .joinToString(" ")
+                        .ifBlank { "Técnico sin nombre" }
+                },
             statuses = (state.statuses + OrderStatus.changeableValues + order.status)
                 .filter(String::isNotBlank)
                 .distinct(),
@@ -110,6 +117,7 @@ private fun OrderDetailContent(
     contentPadding: PaddingValues,
     clientName: String?,
     motorcycleLabel: String?,
+    employeeLabel: String?,
     statuses: List<String>,
     isSaving: Boolean,
     isUpdatingStatus: Boolean,
@@ -158,12 +166,14 @@ private fun OrderDetailContent(
 
         DetailLine("Cliente", clientName ?: order.clientId)
         DetailLine("Motocicleta", motorcycleLabel ?: order.motorcycleId)
+        DetailLine("Técnico", employeeLabel ?: "Sin asignar")
         DetailLine("Descripción", order.description)
-        DetailLine("Total", formatOrderMoney(order.total))
-        Text(
-            "Servicios y repuestos no están disponibles en el modelo Order ni en ApiService actual.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        OrderTotalsDetail(
+            laborCost = order.laborCost ?: 0.0,
+            servicesCost = order.servicesCost ?: 0.0,
+            partsCost = order.partsCost ?: 0.0,
+            discount = order.discount ?: 0.0,
+            total = order.total
         )
         operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
@@ -184,5 +194,23 @@ private fun DetailLine(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun OrderTotalsDetail(
+    laborCost: Double,
+    servicesCost: Double,
+    partsCost: Double,
+    discount: Double,
+    total: Double
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Totales", style = MaterialTheme.typography.titleMedium)
+        DetailLine("Mano de obra", formatOrderMoney(laborCost))
+        DetailLine("Servicios", formatOrderMoney(servicesCost))
+        DetailLine("Repuestos", formatOrderMoney(partsCost))
+        DetailLine("Descuento", "− ${formatOrderMoney(discount)}")
+        DetailLine("Total", formatOrderMoney(total))
     }
 }
