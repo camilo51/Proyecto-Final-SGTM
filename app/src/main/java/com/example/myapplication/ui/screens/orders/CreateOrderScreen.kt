@@ -29,8 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
-import com.example.myapplication.ui.viewmodel.MotorcycleStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
+import com.example.myapplication.ui.viewmodel.OrderStatus
 
 @Composable
 fun CreateOrderScreen(
@@ -45,15 +45,15 @@ fun CreateOrderScreen(
         viewModel.loadReferences()
     }
     var description by rememberSaveable { mutableStateOf("") }
-    var status by rememberSaveable { mutableStateOf(MotorcycleStatus.IN_SERVICE) }
-    var total by rememberSaveable { mutableStateOf("") }
+    var status by rememberSaveable { mutableStateOf(OrderStatus.PENDING) }
+    var laborCost by rememberSaveable { mutableStateOf("") }
 
     val clientId = state.selectedClientId.orEmpty()
     val motorcycleId = state.selectedMotorcycleId.orEmpty()
     val motorcycles = state.selectedClientMotorcycles
     val selectedClient = state.selectedClient
     val selectedMotorcycle = state.selectedMotorcycle
-    val statusOptions = (state.statuses + MotorcycleStatus.values).filter(String::isNotBlank).distinct()
+    val statusOptions = OrderStatus.changeableValues
     val clientOptions = state.clients.mapNotNull { client ->
         client.id?.let {
             OrderDropdownOption(
@@ -134,10 +134,10 @@ fun CreateOrderScreen(
             onSelected = { status = it }
         )
         OutlinedTextField(
-            value = total,
-            onValueChange = { total = it },
+            value = laborCost,
+            onValueChange = { laborCost = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Total") },
+            label = { Text("Mano de obra (opcional)") },
             singleLine = true,
             enabled = !state.isSaving,
             keyboardOptions = KeyboardOptions(
@@ -151,7 +151,7 @@ fun CreateOrderScreen(
         }
 
         Button(
-            onClick = { viewModel.createOrder(clientId, motorcycleId, description, status, total) },
+            onClick = { viewModel.createOrder(clientId, motorcycleId, description, status, laborCost) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.isSaving
         ) {

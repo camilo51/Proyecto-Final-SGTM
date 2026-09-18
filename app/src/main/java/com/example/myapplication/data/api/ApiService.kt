@@ -347,7 +347,13 @@ interface ApiService {
 
     @POST("orders")
     suspend fun createOrder(
-        @Body order: Order
+        @Body order: JsonObject
+    ): ApiResponse<Order>
+
+    @POST("orders/{id}/change-status")
+    suspend fun changeOrderStatus(
+        @Path("id") id: String,
+        @Body status: JsonObject
     ): ApiResponse<Order>
 
     @PUT("orders/{id}")

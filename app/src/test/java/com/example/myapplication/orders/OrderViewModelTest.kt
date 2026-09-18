@@ -8,16 +8,19 @@ import com.example.myapplication.data.repository.ClientRepository
 import com.example.myapplication.data.repository.MotorcycleRepository
 import com.example.myapplication.data.repository.OrderRepository
 import com.example.myapplication.ui.viewmodel.OrderViewModel
+import com.google.gson.JsonObject
 import java.io.IOException
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
+import com.example.myapplication.data.model.common.ApiResponse
 
 class OrderViewModelTest {
     @Test
@@ -79,6 +82,55 @@ class OrderViewModelTest {
     }
 
     @Test
+    fun createOrder_sendsLaborCostAndAppliesSelectedStatus() {
+        val source = FakeOrderRepository(created = order("8", "Pendiente"))
+        val viewModel = viewModel(source)
+
+        viewModel.createOrder("10", "20", "Daño de motor", "En reparación", "200000")
+
+        assertEquals(200000.0, source.createdRequest?.laborCost)
+        assertEquals("En reparación", source.statusRequests.single())
+    }
+
+    @Test
+    fun orderRepository_usesBackendCreateContract() {
+        var request: JsonObject? = null
+        val apiService = Proxy.newProxyInstance(
+            ApiService::class.java.classLoader,
+            arrayOf(ApiService::class.java)
+        ) { _, method, args ->
+            if (method.name == "createOrder") {
+                request = args?.filterIsInstance<JsonObject>()?.single()
+                ApiResponse(success = true, data = order("8", "Pendiente"))
+            } else {
+                error("Llamada inesperada a ApiService: ${method.name}")
+            }
+        } as ApiService
+
+        runBlocking {
+            OrderRepository(apiService).createOrder(
+                Order(
+                    clientId = "10",
+                    motorcycleId = "20",
+                    description = "Daño de motor",
+                    status = "En reparación",
+                    laborCost = 200000.0,
+                    total = 200000.0
+                )
+            )
+        }
+
+        val payload = requireNotNull(request)
+        assertEquals(10, payload.get("client_id").asInt)
+        assertEquals(20, payload.get("motorcycle_id").asInt)
+        assertEquals("Daño de motor", payload.get("problem_description").asString)
+        assertEquals(200000.0, payload.get("labor_cost").asDouble, 0.0)
+        assertTrue(!payload.has("diagnostic_notes"))
+        assertTrue(!payload.has("final_price"))
+        assertTrue(!payload.has("status"))
+    }
+
+    @Test
     fun invalidCreate_isRejectedBeforeRepositoryCall() {
         val source = FakeOrderRepository()
         val viewModel = viewModel(source)
@@ -119,7 +171,8 @@ class OrderViewModelTest {
         assertEquals("En reparación", viewModel.uiState.value.orders.single().status)
         assertEquals("En reparación", viewModel.uiState.value.selectedOrder?.status)
         assertEquals("En reparación", viewModel.uiState.value.motorcycles.single().status)
-        assertEquals(1, motorcycleRepository.updateCalls)
+        assertEquals(1, source.statusRequests.size)
+        assertEquals(0, motorcycleRepository.updateCalls)
         assertTrue(!viewModel.uiState.value.isUpdatingStatus)
     }
 
@@ -246,6 +299,8 @@ private class FakeOrderRepository(
     private val updateFailure: Exception? = null
 ) : OrderRepository(noOpApiService) {
     var createCalls = 0
+    var createdRequest: Order? = null
+    val statusRequests = mutableListOf<String>()
 
     override suspend fun getOrders(): List<Order> {
         failure?.let { throw it }
@@ -256,7 +311,15 @@ private class FakeOrderRepository(
 
     override suspend fun createOrder(order: Order): Order {
         createCalls++
+        createdRequest = order
         return created ?: order.copy(id = "generated")
+    }
+
+    override suspend fun changeOrderStatus(id: String, status: String): Order {
+        updateFailure?.let { throw it }
+        statusRequests += status
+        return (updated ?: values.firstOrNull { it.id == id } ?: created ?: Order(id = id))
+            .copy(id = id, status = status)
     }
 
     override suspend fun updateOrder(id: String, order: Order): Order {

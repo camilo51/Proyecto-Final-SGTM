@@ -11,6 +11,7 @@ import com.example.myapplication.data.model.Order
 import com.example.myapplication.data.repository.ClientRepository
 import com.example.myapplication.data.repository.MotorcycleRepository
 import com.example.myapplication.data.repository.OrderRepository
+import com.google.gson.JsonParser
 import com.google.gson.JsonParseException
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -63,6 +64,25 @@ data class OrderUiState(
 
     val selectedClientMotorcycles: List<Motorcycle>
         get() = if (selectedClientId == null) emptyList() else motorcyclesForSelectedClient
+}
+
+object OrderStatus {
+    const val PENDING = "Pendiente"
+    const val IN_PROCESS = "En proceso"
+    const val IN_REPAIR = "En reparación"
+    const val WAITING_FOR_PART = "Esperando repuesto"
+    const val READY = "Listo"
+    const val READY_FOR_DELIVERY = "Lista para entrega"
+    const val DELIVERED = "Entregada"
+
+    val changeableValues = listOf(
+        PENDING,
+        IN_PROCESS,
+        IN_REPAIR,
+        WAITING_FOR_PART,
+        READY,
+        READY_FOR_DELIVERY
+    )
 }
 
 class OrderViewModel(
@@ -246,7 +266,7 @@ class OrderViewModel(
         motorcycleId: String,
         description: String,
         status: String,
-        totalText: String
+        laborCostText: String
     ) {
         if (_uiState.value.isSaving) return
         val state = _uiState.value
@@ -261,7 +281,13 @@ class OrderViewModel(
                 return
             }
         }
-        val validationError = OrderValidator.validate(clientId, motorcycleId, description, status, totalText)
+        val validationError = OrderValidator.validateCreate(
+            clientId,
+            motorcycleId,
+            description,
+            status,
+            laborCostText
+        )
         if (validationError != null) {
             _uiState.update { it.copy(operationMessage = validationError) }
             return
@@ -275,16 +301,21 @@ class OrderViewModel(
                         motorcycleId = motorcycleId,
                         description = description.trim(),
                         status = status.trim(),
-                        total = totalText.toDouble()
+                        laborCost = laborCostText.toDoubleOrNull()
                     )
                 )
+                val saved = if (status != OrderStatus.PENDING && created.id != null) {
+                    orderRepository.changeOrderStatus(created.id, status)
+                } else {
+                    created
+                }
                 _uiState.update {
                     it.copy(
-                        orders = (it.orders + created).distinctBy(Order::id),
-                        selectedOrder = created,
+                        orders = (it.orders + saved).distinctBy(Order::id),
+                        selectedOrder = saved,
                         isSaving = false,
                         operationMessage = "Orden creada correctamente",
-                        savedOrderId = created.id
+                        savedOrderId = saved.id
                     ).withFilters()
                 }
             } catch (exception: Exception) {
@@ -350,14 +381,8 @@ class OrderViewModel(
                 )
             }
             try {
-                val updatedOrder = orderRepository.updateOrder(
-                    orderId,
-                    currentOrder.copy(status = status)
-                )
-                val updatedMotorcycle = syncMotorcycleStatus(
-                    updatedOrder.motorcycleId.ifBlank { currentOrder.motorcycleId },
-                    status
-                )
+                val updatedOrder = orderRepository.changeOrderStatus(orderId, status)
+                val motorcycleStatus = motorcycleStatusForOrder(status)
                 _uiState.update { currentState ->
                     currentState.copy(
                         orders = currentState.orders.map { order ->
@@ -368,9 +393,13 @@ class OrderViewModel(
                         } else {
                             currentState.selectedOrder
                         },
-                        motorcycles = updatedMotorcycle?.let { motorcycle ->
+                        motorcycles = motorcycleStatus?.let { mappedStatus ->
                             currentState.motorcycles.map { current ->
-                                if (current.id == motorcycle.id) motorcycle else current
+                                if (current.id == updatedOrder.motorcycleId) {
+                                    current.copy(status = mappedStatus)
+                                } else {
+                                    current
+                                }
                             }
                         } ?: currentState.motorcycles,
                         updatingOrderId = null,
@@ -443,12 +472,12 @@ class OrderViewModel(
         )
     }
 
-    private suspend fun syncMotorcycleStatus(motorcycleId: String, status: String): Motorcycle? {
-        if (motorcycleId.isBlank()) return null
-        val motorcycle = _uiState.value.motorcycles.firstOrNull { it.id == motorcycleId }
-            ?: motorcycleRepository.getMotorcycle(motorcycleId)
-        val id = motorcycle.id?.takeIf(String::isNotBlank) ?: motorcycleId
-        return motorcycleRepository.updateMotorcycle(id, motorcycle.copy(status = status))
+    private fun motorcycleStatusForOrder(status: String): String? = when (status) {
+        OrderStatus.PENDING, OrderStatus.IN_PROCESS -> MotorcycleStatus.IN_SERVICE
+        OrderStatus.IN_REPAIR, OrderStatus.WAITING_FOR_PART -> MotorcycleStatus.IN_REPAIR
+        OrderStatus.READY, OrderStatus.READY_FOR_DELIVERY -> MotorcycleStatus.READY_FOR_DELIVERY
+        OrderStatus.DELIVERED -> MotorcycleStatus.DELIVERED
+        else -> null
     }
 
     private fun messageFor(exception: Exception, fallback: String): String = when (exception) {
@@ -464,34 +493,31 @@ class OrderViewModel(
             logException(exception)
             "No se pudo interpretar la respuesta del servidor"
         }
-        is HttpException -> when (exception.code()) {
+        is HttpException -> {
+            val safeBody = readSafeHttpError(exception)
+            logException(exception, safeBody)
+            when (exception.code()) {
             400 -> {
-                logException(exception)
-                "Los datos enviados no son válidos"
+                safeBody ?: "Los datos enviados no son válidos"
             }
             401 -> {
-                logException(exception)
                 "Tu sesión expiró. Inicia sesión nuevamente."
             }
             403 -> {
-                logException(exception)
                 "No tienes permisos para consultar órdenes"
             }
             404 -> {
-                logException(exception)
                 "No se encontraron las órdenes solicitadas"
             }
             409 -> {
-                logException(exception)
                 "La operación entra en conflicto con el estado actual"
             }
             in 500..599 -> {
-                logException(exception)
                 "El servidor presentó un error"
             }
             else -> {
-                logException(exception)
                 fallback
+            }
             }
         }
         else -> {
@@ -500,14 +526,11 @@ class OrderViewModel(
         }
     }
 
-    private fun logException(exception: Exception) {
+    private fun logException(exception: Exception, safeBody: String? = null) {
         if (!BuildConfig.DEBUG) return
 
         when (exception) {
             is HttpException -> {
-                val safeBody = runCatching { exception.response()?.errorBody()?.string() }
-                    .getOrNull()
-                    ?.let(::safeErrorMessage)
                 runCatching {
                     Log.e(
                         "OrderViewModel",
@@ -526,13 +549,46 @@ class OrderViewModel(
     }
 
     private fun safeErrorMessage(body: String): String {
-        val message = Regex("(?i)\\\"message\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"")
-            .find(body)?.groupValues?.getOrNull(1)
-        return message?.let { "message=${it.take(1_000)}" } ?: "body_present=true"
+        val root = runCatching { JsonParser.parseString(body).asJsonObject }.getOrNull()
+            ?: return "body_present=true"
+        val message = root.get("message")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
+        val errors = root.getAsJsonArray("errors")?.mapNotNull { item ->
+            item.takeIf { it.isJsonObject }?.asJsonObject?.let { error ->
+                val field = error.get("field")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
+                val detail = error.get("message")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
+                listOf(field, detail).filter(String::isNotBlank).joinToString(": ")
+                    .takeIf(String::isNotBlank)
+            }
+        }.orEmpty()
+        return listOf(message, errors.joinToString("; "))
+            .filter(String::isNotBlank)
+            .joinToString(": ")
+            .takeIf(String::isNotBlank)
+            ?: "body_present=true"
     }
+
+    private fun readSafeHttpError(exception: HttpException): String? = runCatching {
+        exception.response()?.errorBody()?.string()?.let(::safeErrorMessage)
+    }.getOrNull()
 }
 
 object OrderValidator {
+    fun validateCreate(
+        clientId: String,
+        motorcycleId: String,
+        description: String,
+        status: String,
+        laborCostText: String
+    ): String? {
+        val commonError = validateReferences(clientId, motorcycleId, description)
+        if (commonError != null) return commonError
+        if (status !in OrderStatus.changeableValues) return "Selecciona un estado válido"
+        if (laborCostText.isBlank()) return null
+        val laborCost = laborCostText.toDoubleOrNull() ?: return "La mano de obra no es válida"
+        if (!laborCost.isFinite() || laborCost < 0) return "La mano de obra no puede ser negativa"
+        return null
+    }
+
     fun validate(
         clientId: String,
         motorcycleId: String,
@@ -540,13 +596,19 @@ object OrderValidator {
         status: String,
         totalText: String
     ): String? {
+        val commonError = validateReferences(clientId, motorcycleId, description)
+        if (commonError != null) return commonError
+        if (status.isBlank()) return "El estado es obligatorio"
+        val total = totalText.toDoubleOrNull() ?: return "El total no es válido"
+        if (!total.isFinite() || total < 0) return "El total no puede ser negativo"
+        return null
+    }
+
+    private fun validateReferences(clientId: String, motorcycleId: String, description: String): String? {
         if (clientId.isBlank()) return "Selecciona un cliente"
         if (motorcycleId.isBlank()) return "Selecciona una motocicleta"
         if (description.isBlank()) return "La descripción es obligatoria"
         if (description.length > 2000) return "La descripción no puede superar 2000 caracteres"
-        if (status.isBlank()) return "El estado es obligatorio"
-        val total = totalText.toDoubleOrNull() ?: return "El total no es válido"
-        if (!total.isFinite() || total < 0) return "El total no puede ser negativo"
         return null
     }
 }

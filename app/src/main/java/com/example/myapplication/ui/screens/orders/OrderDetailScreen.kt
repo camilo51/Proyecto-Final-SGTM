@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
-import com.example.myapplication.ui.viewmodel.MotorcycleStatus
+import com.example.myapplication.ui.viewmodel.OrderStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 @Composable
@@ -70,7 +70,9 @@ fun OrderDetailScreen(
             motorcycleLabel = state.motorcycles.firstOrNull { it.id == order.motorcycleId }?.let {
                 "${it.brand} ${it.model} · ${it.plate}"
             },
-            statuses = (state.statuses + MotorcycleStatus.values + order.status).filter(String::isNotBlank).distinct(),
+            statuses = (state.statuses + OrderStatus.changeableValues + order.status)
+                .filter(String::isNotBlank)
+                .distinct(),
             isSaving = state.isSaving,
             isUpdatingStatus = state.updatingOrderId == order.id,
             isDeleting = state.isDeleting,
