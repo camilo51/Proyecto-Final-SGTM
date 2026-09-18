@@ -159,21 +159,14 @@ fun UsersScreen(
         }
 
         if (showDialog) {
-            UserFormDialog(
+            // Show full-screen form instead of dialog
+            UsersFormScreen(
                 user = selectedUser,
-                onDismiss = { 
+                onBack = {
                     showDialog = false
                     viewModel.clearOperationMessage()
                 },
-                onSave = { name, email, avatar ->
-                    if (selectedUser == null) {
-                        viewModel.createUser(name, email, avatar)
-                    } else {
-                        viewModel.updateUser(selectedUser!!.copy(name = name, email = email, avatar = avatar))
-                    }
-                },
-                isSaving = state.isSaving,
-                operationMessage = state.operationMessage
+                viewModel = viewModel
             )
         }
     }
