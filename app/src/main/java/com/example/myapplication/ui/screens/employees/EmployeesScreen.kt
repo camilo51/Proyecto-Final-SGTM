@@ -196,57 +196,92 @@ private fun EmployeeFormDialog(
     isSaving: Boolean,
     operationMessage: String?
 ) {
-    var name by remember { mutableStateOf(employee?.name ?: "") }
-    var email by remember { mutableStateOf(employee?.email ?: "") }
-    var phone by remember { mutableStateOf(employee?.phone ?: "") }
-    var role by remember { mutableStateOf(employee?.role ?: "") }
+    // Map UI fields into existing model: name = "$nombre $apellido", role = especialidad
+    var tipoDocumento by remember { mutableStateOf("CC") }
+    var documento by remember { mutableStateOf("80123456") }
+    var nombre by remember { mutableStateOf(employee?.name?.split(" ")?.firstOrNull() ?: "Jorge") }
+    var apellido by remember { mutableStateOf(employee?.name?.split(" ")?.getOrNull(1) ?: "Pérez") }
+    var email by remember { mutableStateOf(employee?.email ?: "empleado@sgtm.test") }
+    var phone by remember { mutableStateOf(employee?.phone ?: "3001112233") }
+    var especialidad by remember { mutableStateOf(employee?.role ?: "Mecánica general") }
+    var tarifaDiaria by remember { mutableStateOf("80000") }
+    var comision by remember { mutableStateOf("60") }
+    var estado by remember { mutableStateOf("Activo") }
+    var fechaContratacion by remember { mutableStateOf("18/09/2026") }
+
+    val tipos = listOf("CC", "CE", "TI")
+    val specialties = listOf("Mecánica general", "Mecánica básica", "Mecánica eléctrica")
+    val estados = listOf("Activo", "Inactivo")
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (employee == null) "Nuevo Empleado" else "Editar Empleado") },
+        title = { Text(if (employee == null) "Nuevo empleado" else "Editar empleado") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth())
-                
-                var expanded by remember { mutableStateOf(false) }
-                val specialties = listOf("Mecánica general", "Mecánica básica", "Mecánica eléctrica")
-                
-                if (role.isBlank()) {
-                    role = specialties.first()
-                }
-
+                // Documento
+                var expandedTipo by remember { mutableStateOf(false) }
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = role,
+                        value = tipoDocumento,
                         onValueChange = {},
-                        label = { Text("Rol/Especialidad") },
+                        label = { Text("Tipo de documento *") },
                         readOnly = true,
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
-                            IconButton(onClick = { expanded = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Seleccionar especialidad")
-                            }
+                            IconButton(onClick = { expandedTipo = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
                         }
                     )
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier.fillMaxWidth(0.9f)
-                    ) {
-                        specialties.forEach { specialty ->
-                            DropdownMenuItem(
-                                text = { Text(specialty) },
-                                onClick = {
-                                    role = specialty
-                                    expanded = false
-                                }
-                            )
-                        }
+                    DropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
+                        tipos.forEach { t -> DropdownMenuItem(text = { Text(t) }, onClick = { tipoDocumento = t; expandedTipo = false }) }
                     }
                 }
-                
+                OutlinedTextField(value = documento, onValueChange = { documento = it }, label = { Text("Documento *") }, modifier = Modifier.fillMaxWidth())
+
+                // Nombre / Apellido
+                OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = apellido, onValueChange = { apellido = it }, label = { Text("Apellido *") }, modifier = Modifier.fillMaxWidth())
+
+                // Teléfono / Correo
+                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo electrónico") }, modifier = Modifier.fillMaxWidth())
+
+                // Especialidad
+                var expandedSpec by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = especialidad,
+                        onValueChange = {},
+                        label = { Text("Especialidad *") },
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = { IconButton(onClick = { expandedSpec = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
+                    )
+                    DropdownMenu(expanded = expandedSpec, onDismissRequest = { expandedSpec = false }) {
+                        specialties.forEach { s -> DropdownMenuItem(text = { Text(s) }, onClick = { especialidad = s; expandedSpec = false }) }
+                    }
+                }
+
+                // Tarifa diaria / Comisión
+                OutlinedTextField(value = tarifaDiaria, onValueChange = { tarifaDiaria = it }, label = { Text("Tarifa diaria (COP)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = comision, onValueChange = { comision = it }, label = { Text("Comisión (%)") }, modifier = Modifier.fillMaxWidth())
+
+                // Estado / Fecha de contratación
+                var expandedEstado by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = estado,
+                        onValueChange = {},
+                        label = { Text("Estado") },
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = { IconButton(onClick = { expandedEstado = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
+                    )
+                    DropdownMenu(expanded = expandedEstado, onDismissRequest = { expandedEstado = false }) {
+                        estados.forEach { e -> DropdownMenuItem(text = { Text(e) }, onClick = { estado = e; expandedEstado = false }) }
+                    }
+                }
+                OutlinedTextField(value = fechaContratacion, onValueChange = { fechaContratacion = it }, label = { Text("Fecha de contratación *") }, modifier = Modifier.fillMaxWidth())
+
                 operationMessage?.let {
                     Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                 }
@@ -254,11 +289,11 @@ private fun EmployeeFormDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onSave(name, email, phone, role) },
-                enabled = !isSaving && name.isNotBlank()
+                onClick = { onSave("${nombre.trim()} ${apellido.trim()}".trim(), email.trim(), phone.trim(), especialidad) },
+                enabled = !isSaving && nombre.isNotBlank() && apellido.isNotBlank()
             ) {
                 if (isSaving) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                else Text("Guardar")
+                else Text("Guardar empleado")
             }
         },
         dismissButton = {

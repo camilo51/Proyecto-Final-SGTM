@@ -195,19 +195,76 @@ private fun UserFormDialog(
     isSaving: Boolean,
     operationMessage: String?
 ) {
-    var name by remember { mutableStateOf(user?.name ?: "") }
-    var email by remember { mutableStateOf(user?.email ?: "") }
-    var avatar by remember { mutableStateOf(user?.avatar ?: "") }
+    // Keep mapping compatible with existing viewModel: name <- username, avatar <- role
+    var username by remember { mutableStateOf(user?.name ?: "nombre_usuario") }
+    var email by remember { mutableStateOf(user?.email ?: "usuario@sgtm.test") }
+    var password by remember { mutableStateOf("secret1") }
+    var confirmPassword by remember { mutableStateOf("secret1") }
+    var role by remember { mutableStateOf(user?.avatar ?: "Administrador") }
+    var estado by remember { mutableStateOf("Activo") }
+
+    val roles = listOf("Administrador", "Técnico", "Recepción")
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (user == null) "Nuevo Usuario" else "Editar Usuario") },
+        title = { Text(if (user == null) "Nuevo usuario" else "Editar usuario") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = avatar, onValueChange = { avatar = it }, label = { Text("Avatar (URL opcional)") }, modifier = Modifier.fillMaxWidth())
-                
+                OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Usuario *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo electrónico *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Contraseña *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = { Text("Confirmar contraseña *") }, modifier = Modifier.fillMaxWidth())
+                if (password.length < 6) {
+                    Text("Mínimo 6 caracteres", color = MaterialTheme.colorScheme.error)
+                } else if (password != confirmPassword) {
+                    Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error)
+                }
+
+                // Role dropdown
+                var expandedRole by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = role,
+                        onValueChange = {},
+                        label = { Text("Rol *") },
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { expandedRole = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Seleccionar rol")
+                            }
+                        }
+                    )
+                    DropdownMenu(expanded = expandedRole, onDismissRequest = { expandedRole = false }) {
+                        roles.forEach { r ->
+                            DropdownMenuItem(text = { Text(r) }, onClick = { role = r; expandedRole = false })
+                        }
+                    }
+                }
+
+                // Estado dropdown
+                var expandedEstado by remember { mutableStateOf(false) }
+                val estados = listOf("Activo", "Inactivo")
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = estado,
+                        onValueChange = {},
+                        label = { Text("Estado") },
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { expandedEstado = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Seleccionar estado")
+                            }
+                        }
+                    )
+                    DropdownMenu(expanded = expandedEstado, onDismissRequest = { expandedEstado = false }) {
+                        estados.forEach { e ->
+                            DropdownMenuItem(text = { Text(e) }, onClick = { estado = e; expandedEstado = false })
+                        }
+                    }
+                }
+
                 operationMessage?.let {
                     Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                 }
@@ -215,11 +272,11 @@ private fun UserFormDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onSave(name, email, avatar.takeIf { it.isNotBlank() }) },
-                enabled = !isSaving && name.isNotBlank() && email.isNotBlank()
+                onClick = { onSave(username.trim(), email.trim(), role.takeIf { it.isNotBlank() }) },
+                enabled = !isSaving && username.isNotBlank() && email.isNotBlank() && password.length >= 6 && password == confirmPassword
             ) {
                 if (isSaving) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                else Text("Guardar")
+                else Text("Guardar usuario")
             }
         },
         dismissButton = {
