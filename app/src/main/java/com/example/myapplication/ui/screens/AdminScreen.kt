@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.UserDto
+import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.viewmodel.DashboardViewModel
 import java.util.Calendar
 import java.util.Locale
@@ -69,7 +70,7 @@ fun AdminScreen(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(28.dp)
                 ) {
-                    DashboardHeader(userName)
+                    DashboardHeader(userName, navController)
 
                     MetricsSection(uiState)
 
@@ -122,7 +123,7 @@ private fun TopSearchBar(onOpenDrawer: () -> Unit) {
 }
 
 @Composable
-private fun DashboardHeader(userName: String?) {
+private fun DashboardHeader(userName: String?, navController: NavController) {
     val calendar = Calendar.getInstance()
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     
@@ -165,7 +166,7 @@ private fun DashboardHeader(userName: String?) {
         }
         
         Button(
-            onClick = { /* Nueva orden */ },
+            onClick = { navController.navigate(AppRoutes.CreateOrder) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(12.dp),
