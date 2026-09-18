@@ -116,7 +116,7 @@ private fun MotorcycleDetailContent(
             MotorcycleDetailLine("Año", motorcycle.year?.toString())
             MotorcycleDetailLine("Color", motorcycle.color)
             MotorcycleDetailLine("Cilindraje", motorcycle.engineCc?.let { "$it cc" })
-            MotorcycleDetailLine("Propietario", owner?.name ?: if (motorcycle.clientId == null) "Sin propietario" else "No registrado")
+            MotorcycleDetailLine("Propietario", owner?.name.orEmpty().ifBlank { if (motorcycle.clientId == null) "Sin propietario" else "No registrado" })
             MotorcycleDetailLine("Notas", motorcycle.notes)
             MotorcycleDetailLine("Estado", motorcycle.status)
             Text(

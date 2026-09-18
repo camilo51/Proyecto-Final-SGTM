@@ -8,6 +8,8 @@ object AppRoutes {
     const val Profile = "profile"
     const val Home = "home"
     const val Clients = "clients"
+    const val CreateClient = "clients/create"
+    const val EditClient = "clients/{clientId}/edit"
     const val Motorcycles = "motorcycles"
     const val MotorcycleDetail = "motorcycles/{motorcycleId}"
     const val CreateMotorcycle = "motorcycles/create"
@@ -24,4 +26,5 @@ object AppRoutes {
     fun editOrder(id: String): String = "orders/${Uri.encode(id)}/edit"
     fun motorcycleDetail(id: String): String = "motorcycles/${Uri.encode(id)}"
     fun editMotorcycle(id: String): String = "motorcycles/${Uri.encode(id)}/edit"
+    fun editClient(id: String): String = "clients/${Uri.encode(id)}/edit"
 }

@@ -272,9 +272,9 @@ private fun MotorcycleForm(
                         DropdownMenuItem(
                             text = {
                                 Column {
-                                    Text(client.name.ifBlank { "Cliente sin nombre" })
+                                    Text(client.name.orEmpty().ifBlank { "Cliente sin nombre" })
                                     Text(
-                                        listOfNotNull(client.cedula, client.phone.takeIf(String::isNotBlank)).joinToString(" · "),
+                                        listOfNotNull(client.document, client.phone?.takeIf(String::isNotBlank)).joinToString(" · "),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -294,7 +294,7 @@ private fun MotorcycleForm(
             Text(
                 when {
                     clientId == null -> "Sin propietario: se enviará client_id = null"
-                    selectedClient != null -> "✓ ${selectedClient.name.ifBlank { "Nombre no registrado" }} seleccionado"
+                    selectedClient != null -> "✓ ${selectedClient.name.orEmpty().ifBlank { "Nombre no registrado" }} seleccionado"
                     state.isLoadingClients -> "Cargando propietario…"
                     else -> "Propietario no encontrado"
                 },
