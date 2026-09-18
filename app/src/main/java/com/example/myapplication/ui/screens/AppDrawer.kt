@@ -90,7 +90,8 @@ val appMenuItems = listOf(
     AppMenuItem(AppRoutes.Orders, "Órdenes de trabajo", Icons.AutoMirrored.Filled.List, adminOnly = true),
     AppMenuItem(AppRoutes.Inventory, "Inventario", Icons.Filled.ShoppingCart, adminOnly = true),
     AppMenuItem(AppRoutes.Invoices, "Facturación", Icons.Filled.Info, adminOnly = true),
-    AppMenuItem(AppRoutes.Reports, "Reportes", Icons.Filled.DateRange, adminOnly = true)
+    AppMenuItem(AppRoutes.Reports, "Reportes", Icons.Filled.DateRange, adminOnly = true),
+    AppMenuItem(AppRoutes.Audit, "Auditoría", Icons.Filled.Info, adminOnly = true)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

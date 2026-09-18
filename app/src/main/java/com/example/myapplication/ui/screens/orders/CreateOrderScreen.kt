@@ -77,8 +77,8 @@ fun CreateOrderScreen(
         client.id?.let {
             OrderDropdownOption(
                 id = it,
-                label = client.name.ifBlank { "Cliente sin nombre" },
-                searchText = listOf(client.name, client.cedula.orEmpty(), client.phone, client.email)
+                label = client.name.orEmpty().ifBlank { "Cliente sin nombre" },
+                searchText = listOf(client.name.orEmpty(), client.document.orEmpty(), client.phone.orEmpty(), client.email.orEmpty())
                     .joinToString(" ")
             )
         }
@@ -222,8 +222,8 @@ fun CreateOrderScreen(
 private fun ClientSelectionSummary(client: Client) {
     SelectionSummaryCard(
         title = "Cliente seleccionado",
-        primary = client.name.ifBlank { "Nombre no registrado" },
-        secondary = listOf(client.cedula, client.phone.takeIf(String::isNotBlank))
+        primary = client.name.orEmpty().ifBlank { "Nombre no registrado" },
+        secondary = listOf(client.document, client.phone?.takeIf(String::isNotBlank))
             .filterNotNull()
             .filter(String::isNotBlank)
             .joinToString(" · ")

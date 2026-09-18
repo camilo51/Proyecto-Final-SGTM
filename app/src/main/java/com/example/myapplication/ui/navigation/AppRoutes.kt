@@ -17,6 +17,7 @@ object AppRoutes {
     const val Invoices = "invoices"
     const val InvoiceDetail = "invoices/{invoiceId}"
     const val Reports = "reports"
+    const val Audit = "audit"
     const val OrderDetail = "orders/{orderId}"
     const val CreateOrder = "orders/create"
     const val EditOrder = "orders/{orderId}/edit"
@@ -26,4 +27,5 @@ object AppRoutes {
     fun motorcycleDetail(id: String): String = "motorcycles/${Uri.encode(id)}"
     fun editMotorcycle(id: String): String = "motorcycles/${Uri.encode(id)}/edit"
     fun invoiceDetail(id: String): String = "invoices/${Uri.encode(id)}"
+    fun editClient(id: String): String = "clients/${Uri.encode(id)}/edit"
 }

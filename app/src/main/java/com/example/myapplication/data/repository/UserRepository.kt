@@ -10,7 +10,7 @@ UserRepository(
 ) {
 
     open suspend fun getUsers(): List<User> {
-        return apiService.getUsers()
+        return apiService.getUsers().requireData()
     }
 
     open suspend fun getUser(id: String): User {

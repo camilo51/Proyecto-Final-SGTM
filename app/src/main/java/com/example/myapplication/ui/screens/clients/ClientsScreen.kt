@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
@@ -64,27 +63,15 @@ import com.example.myapplication.ui.viewmodel.ClientViewModel
 @Composable
 fun ClientsScreen(
     contentPadding: PaddingValues,
+    onCreateClient: () -> Unit,
+    onEditClient: (String) -> Unit,
     viewModel: ClientViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    var showCreateDialog by rememberSaveable { mutableStateOf(false) }
-    var editingClient by remember { mutableStateOf<Client?>(null) }
     var deletingClient by remember { mutableStateOf<Client?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadClients()
-    }
-
-    LaunchedEffect(state.creationVersion) {
-        if (state.creationVersion > 0) {
-            showCreateDialog = false
-        }
-    }
-
-    LaunchedEffect(state.updateVersion) {
-        if (state.updateVersion > 0) {
-            editingClient = null
-        }
     }
 
     LaunchedEffect(state.deleteVersion) {
@@ -104,10 +91,7 @@ fun ClientsScreen(
         ClientsHeader(
             isSaving = state.isSaving,
             isRefreshing = state.isRefreshing,
-            onCreateClient = {
-                viewModel.clearOperationMessage()
-                showCreateDialog = true
-            },
+            onCreateClient = onCreateClient,
             onRefresh = viewModel::refreshClients
         )
 
@@ -118,7 +102,7 @@ fun ClientsScreen(
             onValueChange = viewModel::onSearchQueryChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Buscar clientes") },
-            placeholder = { Text("Nombre, cédula, teléfono o correo") },
+            placeholder = { Text("Nombre, apellido, documento o teléfono") },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             trailingIcon = {
                 if (state.searchQuery.isNotEmpty()) {
@@ -138,7 +122,7 @@ fun ClientsScreen(
             )
         }
 
-        if (!showCreateDialog && editingClient == null && deletingClient == null &&
+        if (deletingClient == null &&
             (state.creationVersion > 0 || state.updateVersion > 0 || state.deleteVersion > 0) &&
             state.operationMessage != null
         ) {
@@ -164,7 +148,7 @@ fun ClientsScreen(
                     client = client,
                     onEdit = {
                         viewModel.clearOperationMessage()
-                        editingClient = client
+                        client.id?.let(onEditClient)
                     },
                     onDelete = {
                         viewModel.clearOperationMessage()
@@ -184,31 +168,6 @@ fun ClientsScreen(
         }
     }
 
-    if (showCreateDialog) {
-        CreateClientDialog(
-            isSaving = state.isSaving,
-            errorMessage = state.operationMessage,
-            onDismissRequest = {
-                showCreateDialog = false
-                viewModel.clearOperationMessage()
-            },
-            onSave = viewModel::createClient
-        )
-    }
-
-    editingClient?.let { client ->
-        EditClientDialog(
-            client = client,
-            isSaving = state.isSaving,
-            errorMessage = state.operationMessage,
-            onDismissRequest = {
-                editingClient = null
-                viewModel.clearOperationMessage()
-            },
-            onSave = viewModel::updateClient
-        )
-    }
-
     deletingClient?.let { client ->
         DeleteClientDialog(
             client = client,
@@ -220,7 +179,7 @@ fun ClientsScreen(
                     viewModel.clearOperationMessage()
                 }
             },
-            onConfirm = { client.id?.let(viewModel::deleteClient) }
+            onConfirm = { reason -> client.id?.let { viewModel.deleteClient(it, reason) } }
         )
     }
 }
@@ -376,194 +335,6 @@ private fun ClientPagination(
 }
 
 @Composable
-private fun CreateClientDialog(
-    isSaving: Boolean,
-    errorMessage: String?,
-    onDismissRequest: () -> Unit,
-    onSave: (String, String, String, String) -> Unit
-) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var cedula by rememberSaveable { mutableStateOf("") }
-    var phone by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = { if (!isSaving) onDismissRequest() },
-        title = { Text("Nuevo cliente") },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "Todos los campos son opcionales.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                ClientFormField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = "Nombre"
-                )
-                ClientFormField(
-                    value = cedula,
-                    onValueChange = { cedula = it },
-                    label = "Cédula"
-                )
-                ClientFormField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = "Número"
-                )
-                ClientFormField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = "Correo"
-                )
-                if (!errorMessage.isNullOrBlank()) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(name, cedula, phone, email) },
-                enabled = !isSaving
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Guardar")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismissRequest,
-                enabled = !isSaving
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
-
-@Composable
-private fun EditClientDialog(
-    client: Client,
-    isSaving: Boolean,
-    errorMessage: String?,
-    onDismissRequest: () -> Unit,
-    onSave: (Client) -> Unit
-) {
-    var name by rememberSaveable(client.id) { mutableStateOf(client.name) }
-    var cedula by rememberSaveable(client.id) { mutableStateOf(client.cedula.orEmpty()) }
-    var phone by rememberSaveable(client.id) { mutableStateOf(client.phone) }
-    var email by rememberSaveable(client.id) { mutableStateOf(client.email) }
-
-    AlertDialog(
-        onDismissRequest = { if (!isSaving) onDismissRequest() },
-        title = { Text("Editar cliente") },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = "Actualiza la información disponible del cliente.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                ClientFormField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = "Nombre"
-                )
-                ClientFormField(
-                    value = cedula,
-                    onValueChange = { cedula = it },
-                    label = "Cédula"
-                )
-                ClientFormField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = "Número"
-                )
-                ClientFormField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = "Correo"
-                )
-                if (!errorMessage.isNullOrBlank()) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onSave(
-                        client.copy(
-                            name = name,
-                            cedula = cedula.trim().takeIf(String::isNotBlank),
-                            phone = phone,
-                            email = email
-                        )
-                    )
-                },
-                enabled = !isSaving
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Guardar cambios")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismissRequest,
-                enabled = !isSaving
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
-
-@Composable
-private fun ClientFormField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        label = { Text(label) },
-        singleLine = true,
-        colors = AppOutlinedTextFieldColors()
-    )
-}
-
-@Composable
 private fun ClientCard(
     client: Client,
     onEdit: () -> Unit,
@@ -637,11 +408,10 @@ private fun ClientCard(
                 )
             }
 
-            client.cedula?.takeIf(String::isNotBlank)?.let {
-                ClientInfoRow(Icons.Filled.Person, "Cédula", it)
+            client.document?.takeIf(String::isNotBlank)?.let {
+                ClientInfoRow(Icons.Filled.Person, "Documento", it)
             }
             ClientInfoRow(Icons.Filled.Phone, "Teléfono", client.phone.orEmpty())
-            ClientInfoRow(Icons.Filled.Email, "Correo", client.email.orEmpty())
         }
     }
 }
@@ -652,21 +422,35 @@ private fun DeleteClientDialog(
     isDeleting: Boolean,
     errorMessage: String?,
     onDismissRequest: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: (String) -> Unit
 ) {
+    var reason by rememberSaveable(client.id) { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = { if (!isDeleting) onDismissRequest() },
         title = { Text("Eliminar cliente") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("¿Deseas eliminar a ${clientDisplayName(client)}? Esta acción se enviará a la API.")
+                Text("¿Deseas eliminar a ${clientDisplayName(client)}? El backend requiere un motivo y realizará un borrado lógico.")
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Motivo de eliminación") },
+                    minLines = 2,
+                    enabled = !isDeleting,
+                    colors = AppOutlinedTextFieldColors()
+                )
                 if (!errorMessage.isNullOrBlank()) {
                     Text(errorMessage, color = MaterialTheme.colorScheme.error)
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm, enabled = !isDeleting) {
+            Button(
+                onClick = { onConfirm(reason) },
+                enabled = !isDeleting && reason.isNotBlank()
+            ) {
                 if (isDeleting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
@@ -686,9 +470,8 @@ private fun DeleteClientDialog(
 
 private fun clientDisplayName(client: Client): String {
     client.name.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return it }
-    client.cedula.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return "Cliente $it" }
+    client.document.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return "Cliente $it" }
     client.phone.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return it }
-    client.email.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return it }
     return "Cliente sin identificar"
 }
 

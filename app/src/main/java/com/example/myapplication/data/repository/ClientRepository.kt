@@ -2,6 +2,8 @@ package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.ClientRequest
+import com.example.myapplication.data.model.DeleteClientRequest
 import com.example.myapplication.data.model.common.requireData
 
 open class ClientRepository(
@@ -12,22 +14,22 @@ open class ClientRepository(
         return apiService.getClients().requireData()
     }
 
-    suspend fun getClient(id: String): Client {
+    open suspend fun getClient(id: String): Client {
         return apiService.getClient(id).requireData()
     }
 
-    open suspend fun createClient(client: Client): Client {
-        return apiService.createClient(client).requireData()
+    open suspend fun createClient(request: ClientRequest): Client {
+        return apiService.createClient(request).requireData()
     }
 
     open suspend fun updateClient(
         id: String,
-        client: Client
+        request: ClientRequest
     ): Client {
-        return apiService.updateClient(id, client).requireData()
+        return apiService.updateClient(id, request).requireData()
     }
 
-    open suspend fun deleteClient(id: String) {
-        apiService.deleteClient(id)
+    open suspend fun deleteClient(id: String, reason: String) {
+        apiService.deleteClient(id, DeleteClientRequest(reason))
     }
 }

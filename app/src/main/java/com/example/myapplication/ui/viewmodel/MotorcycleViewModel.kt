@@ -62,7 +62,7 @@ data class MotorcycleUiState(
             val query = clientSearchQuery.trim().lowercase(Locale.ROOT)
             if (query.isBlank()) return emptyList()
             return clients.filter { client ->
-                listOf(client.name, client.cedula.orEmpty(), client.phone)
+                listOf(client.name.orEmpty(), client.document.orEmpty(), client.phone.orEmpty())
                     .any { value -> value.lowercase(Locale.ROOT).contains(query) }
             }.take(CLIENT_RESULTS_LIMIT)
         }
@@ -363,7 +363,7 @@ class MotorcycleViewModel(
                 motorcycle.brand.orEmpty(),
                 motorcycle.model.orEmpty(),
                 owner?.name.orEmpty(),
-                owner?.cedula.orEmpty(),
+                owner?.document.orEmpty(),
                 owner?.phone.orEmpty()
             ).map { it.lowercase(Locale.ROOT) }
             val matchesQuery = query.isBlank() || query.split(Regex("\\s+")).all { token ->
