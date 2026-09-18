@@ -48,27 +48,24 @@ fun EmployeeFormScreen(
     val specialties = listOf("Mecánica general", "Mecánica básica", "Mecánica eléctrica")
 
     AppTheme(darkTheme = true) {
-        Scaffold(
-            topBar = {
-                SmallTopAppBar(
-                    title = {
-                        Column {
-                            Text("Nuevo empleado", fontWeight = FontWeight.Bold)
-                            Text("Gestión de taller", style = MaterialTheme.typography.labelSmall, color = orange)
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Volver") }
-                    },
-                    colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                )
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { contentPadding ->
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(0.dp)
+        ) {
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)) {
+                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Volver") }
+                Column(modifier = Modifier.padding(start = 4.dp)) {
+                    Text("Nuevo empleado", fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("Gestión de taller", style = MaterialTheme.typography.labelSmall, color = orange)
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(contentPadding)
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -166,7 +163,7 @@ fun EmployeeFormScreen(
                         onClick = {
                             // Reusar ViewModel para crear empleado con campos mínimos que espera el modelo
                             val fullName = "${nombre.trim()} ${apellido.trim()}".trim()
-                            viewModel.createEmployee(fullName, correo.trim(), telefono.trim())
+                            viewModel.createEmployee(fullName, correo.trim(), telefono.trim(), especialidad)
                             onBack()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = orange),
