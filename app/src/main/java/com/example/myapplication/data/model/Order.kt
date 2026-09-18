@@ -16,8 +16,26 @@ data class Order(
     @SerializedName(value = "motorcycle_id", alternate = ["motorcycleId"])
     val motorcycleId: String = "",
 
-    @SerializedName(value = "diagnostic_notes", alternate = ["description"])
+    @SerializedName(value = "diagnostic_notes", alternate = ["problem_description", "description"])
     val description: String = "",
+
+    @SerializedName(value = "assigned_employee_id", alternate = ["assignedEmployeeId"])
+    val assignedEmployeeId: String? = null,
+
+    @SerializedName(value = "appointment_id", alternate = ["appointmentId"])
+    val appointmentId: String? = null,
+
+    @SerializedName(value = "labor_cost", alternate = ["laborCost"])
+    val laborCost: Double? = null,
+
+    @SerializedName("services_cost")
+    val servicesCost: Double? = null,
+
+    @SerializedName("parts_cost")
+    val partsCost: Double? = null,
+
+    @SerializedName("discount")
+    val discount: Double? = null,
 
     @SerializedName("status")
     val status: String = "",

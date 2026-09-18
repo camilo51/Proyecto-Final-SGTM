@@ -59,7 +59,7 @@ import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
-import com.example.myapplication.ui.viewmodel.MotorcycleStatus
+import com.example.myapplication.ui.viewmodel.OrderStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import java.util.Locale
 
@@ -72,7 +72,7 @@ fun OrdersListScreen(
     viewModel: OrderViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    val availableOrderStatuses = (state.statuses + MotorcycleStatus.values).distinct()
+    val availableOrderStatuses = (state.statuses + OrderStatus.changeableValues).distinct()
 
     LaunchedEffect(Unit) {
         viewModel.loadOrders()
