@@ -147,11 +147,16 @@ class MotorcycleViewModel(
     }
 
     fun onClientSearchQueryChange(query: String) {
-        _uiState.update { it.copy(clientSearchQuery = query) }
+        _uiState.update {
+            it.copy(
+                clientSearchQuery = query,
+                selectedClientId = null
+            )
+        }
     }
 
     fun clearClientSearchQuery() {
-        onClientSearchQueryChange("")
+        _uiState.update { it.copy(clientSearchQuery = "") }
     }
 
     fun setFormClientId(clientId: String?) {

@@ -20,13 +20,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,13 +37,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,8 +47,6 @@ import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Invoice
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.ui.screens.inventory.asReadableDate
-import com.example.myapplication.ui.screens.orders.OrderDropdownOption
-import com.example.myapplication.ui.screens.orders.OrderReferenceDropdown
 import com.example.myapplication.ui.screens.orders.formatOrderMoney
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.viewmodel.InvoiceUiState
@@ -66,19 +56,14 @@ import com.example.myapplication.ui.viewmodel.InvoiceViewModel
 fun InvoicesScreen(
     contentPadding: PaddingValues,
     onOpenInvoice: (String) -> Unit,
+    onCreateInvoice: () -> Unit,
     viewModel: InvoiceViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
-    var showCreateDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadInvoices()
         viewModel.loadReferences()
-    }
-    LaunchedEffect(state.creationVersion) {
-        if (state.creationVersion > 0) {
-            showCreateDialog = false
-        }
     }
 
     Column(
@@ -94,7 +79,7 @@ fun InvoicesScreen(
             isRefreshing = state.isRefreshing,
             onCreate = {
                 viewModel.clearOperationMessage()
-                showCreateDialog = true
+                onCreateInvoice()
             },
             onRefresh = viewModel::refreshInvoices
         )
@@ -133,7 +118,7 @@ fun InvoicesScreen(
                 title = "No hay facturas registradas",
                 detail = "Emite una factura desde una orden de trabajo registrada.",
                 actionLabel = "Nueva factura",
-                onAction = { showCreateDialog = true }
+                onAction = onCreateInvoice
             )
             state.filteredInvoices.isEmpty() -> InvoiceMessage(
                 title = "No se encontraron facturas",
@@ -151,17 +136,6 @@ fun InvoicesScreen(
             }
         }
         Spacer(Modifier.size(8.dp))
-    }
-
-    if (showCreateDialog) {
-        CreateInvoiceDialog(
-            state = state,
-            onDismiss = {
-                showCreateDialog = false
-                viewModel.clearOperationMessage()
-            },
-            onCreate = viewModel::createInvoice
-        )
     }
 }
 
@@ -230,13 +204,7 @@ private fun InvoiceCard(invoice: Invoice, client: Client?, order: Order?, onOpen
                     Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.padding(9.dp).size(20.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        invoice.displayNumber(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Text(invoice.displayNumber(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(invoice.date.asReadableDate() ?: "Fecha no registrada", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 FilterChip(selected = true, onClick = {}, enabled = false, label = { Text(invoice.paymentStatus.ifBlank { invoice.status }.ifBlank { "Pendiente" }, maxLines = 1, overflow = TextOverflow.Ellipsis) })
@@ -248,125 +216,6 @@ private fun InvoiceCard(invoice: Invoice, client: Client?, order: Order?, onOpen
                 Text("Notas: $notes", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(formatOrderMoney(invoice.total), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun CreateInvoiceDialog(state: InvoiceUiState, onDismiss: () -> Unit, onCreate: (String, String, String) -> Unit) {
-    var orderId by rememberSaveable { mutableStateOf("") }
-    var paymentMethod by rememberSaveable { mutableStateOf("") }
-    var notes by rememberSaveable { mutableStateOf("") }
-    val options = remember(state.orders, state.clients) {
-        state.orders.mapNotNull { order ->
-            order.id?.let { id ->
-                val clientName = state.clients.firstOrNull { it.id == order.clientId }?.name.orEmpty()
-                OrderDropdownOption(id, "${order.orderNumber ?: "Orden $id"} · $clientName")
-            }
-        }
-    }
-    val selectedOrder = state.orders.firstOrNull { it.id == orderId }
-
-    AlertDialog(
-        onDismissRequest = { if (!state.isSaving) onDismiss() },
-        title = { Text("Nueva factura") },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("El cliente y el total se toman de la orden seleccionada.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                InvoiceOrderAutocomplete(
-                    selectedId = orderId,
-                    options = options,
-                    enabled = !state.isSaving,
-                    onSelected = { orderId = it }
-                )
-                selectedOrder?.let { order ->
-                    Text("Total de la orden: ${formatOrderMoney(order.total)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                }
-                OrderReferenceDropdown(
-                    label = "Modo de pago",
-                    selectedId = paymentMethod,
-                    options = paymentMethods,
-                    enabled = !state.isSaving,
-                    onSelected = { paymentMethod = it }
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Notas (opcional)") },
-                    minLines = 3,
-                    enabled = !state.isSaving,
-                    colors = AppOutlinedTextFieldColors()
-                )
-                state.operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-            }
-        },
-        confirmButton = {
-            Button(onClick = { onCreate(orderId, paymentMethod, notes) }, enabled = !state.isSaving) {
-                if (state.isSaving) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Emitir factura")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !state.isSaving) { Text("Cancelar") } }
-    )
-}
-
-private val paymentMethods = listOf(
-    OrderDropdownOption("Efectivo", "Efectivo"),
-    OrderDropdownOption("Tarjeta", "Tarjeta"),
-    OrderDropdownOption("Transferencia", "Transferencia")
-)
-
-@Composable
-private fun InvoiceOrderAutocomplete(
-    selectedId: String,
-    options: List<OrderDropdownOption>,
-    enabled: Boolean,
-    onSelected: (String) -> Unit
-) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = options.firstOrNull { it.id == selectedId }?.label.orEmpty()
-    val matches = options.filter { option ->
-        query.isBlank() || option.label.contains(query.trim(), ignoreCase = true)
-    }.take(8)
-
-    LaunchedEffect(selectedId) {
-        if (selectedId.isNotBlank() && query != selectedLabel) query = selectedLabel
-    }
-
-    Box(Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { value ->
-                query = value
-                expanded = true
-                if (value != selectedLabel) onSelected("")
-            },
-            modifier = Modifier.fillMaxWidth().onFocusChanged { focus ->
-                if (focus.isFocused) expanded = true
-            },
-            label = { Text("Orden de trabajo") },
-            placeholder = { Text("Busca por OT o cliente") },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            singleLine = true,
-            enabled = enabled,
-            colors = AppOutlinedTextFieldColors()
-        )
-        DropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
-            if (matches.isEmpty()) {
-                DropdownMenuItem(text = { Text("No hay órdenes coincidentes") }, onClick = { expanded = false })
-            } else {
-                matches.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.label, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                        onClick = {
-                            query = option.label
-                            onSelected(option.id)
-                            expanded = false
-                        }
-                    )
-                }
-            }
         }
     }
 }

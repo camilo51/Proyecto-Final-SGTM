@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
+import com.example.myapplication.ui.screens.BackNavigationLink
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 @Composable
@@ -49,7 +50,7 @@ fun EditOrderScreen(
     } else if (order == null) {
         Column(Modifier.padding(contentPadding).padding(16.dp)) {
             Text(state.detailErrorMessage ?: "No se encontró la orden", color = MaterialTheme.colorScheme.error)
-            Button(onClick = onBack) { Text("Volver") }
+            BackNavigationLink(onClick = onBack)
         }
     } else {
         key(order.id) {
@@ -82,8 +83,16 @@ private fun EditOrderForm(
         modifier = Modifier.padding(contentPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        BackNavigationLink(onClick = onBack, enabled = !isSaving)
         Text("Editar orden #${order.id}", style = MaterialTheme.typography.headlineSmall)
-        OrderReferenceDropdown("Cliente", clientId, clientOptions, !isSaving) { clientId = it }
+        OrderReferenceDropdown(
+            label = "Cliente",
+            selectedId = clientId,
+            options = clientOptions,
+            enabled = !isSaving,
+            autocomplete = true,
+            onSelected = { clientId = it }
+        )
         OrderReferenceDropdown("Motocicleta", motorcycleId, motorcycleOptions, !isSaving) { motorcycleId = it }
         OutlinedTextField(
             value = description,
@@ -118,9 +127,6 @@ private fun EditOrderForm(
             enabled = !isSaving
         ) {
             if (isSaving) CircularProgressIndicator() else Text("Guardar cambios")
-        }
-        Button(onClick = onBack, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) {
-            Text("Cancelar")
         }
     }
 }

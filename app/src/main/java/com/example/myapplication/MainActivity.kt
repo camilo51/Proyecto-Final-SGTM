@@ -34,6 +34,7 @@ import com.example.myapplication.ui.screens.inventory.EditInventoryScreen
 import com.example.myapplication.ui.screens.inventory.InventoryDetailScreen
 import com.example.myapplication.ui.screens.inventory.InventoryListScreen
 import com.example.myapplication.ui.screens.inventory.InventoryMovementsScreen
+import com.example.myapplication.ui.screens.invoices.CreateInvoiceScreen
 import com.example.myapplication.ui.screens.invoices.InvoicesScreen
 import com.example.myapplication.ui.screens.invoices.InvoiceDetailScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
@@ -383,11 +384,33 @@ fun MainApp() {
                     InvoicesScreen(
                         contentPadding = padding,
                         onOpenInvoice = { id -> navController.navigate(AppRoutes.invoiceDetail(id)) },
+                        onCreateInvoice = { navController.navigate(AppRoutes.CreateInvoice) },
                         viewModel = invoiceViewModel
                     )
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a facturación")
+            }
+        }
+        composable(AppRoutes.CreateInvoice) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Nueva factura",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    CreateInvoiceScreen(
+                        contentPadding = padding,
+                        onBack = navController::popBackStack,
+                        viewModel = invoiceViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para crear facturas")
             }
         }
         composable(AppRoutes.InvoiceDetail) { entry ->

@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Build
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DrawerValue
@@ -89,10 +91,38 @@ val appMenuItems = listOf(
     AppMenuItem(AppRoutes.Motorcycles, "Motocicletas", Icons.Filled.Build, adminOnly = true),
     AppMenuItem(AppRoutes.Orders, "Órdenes de trabajo", Icons.AutoMirrored.Filled.List, adminOnly = true),
     AppMenuItem(AppRoutes.Inventory, "Inventario", Icons.Filled.ShoppingCart, adminOnly = true),
-    AppMenuItem(AppRoutes.Invoices, "Facturación", Icons.Filled.Info, adminOnly = true),
+    AppMenuItem(AppRoutes.Invoices, "Facturación", Icons.Filled.ReceiptLong, adminOnly = true),
     AppMenuItem(AppRoutes.Reports, "Reportes", Icons.Filled.DateRange, adminOnly = true),
     AppMenuItem(AppRoutes.Audit, "Auditoría", Icons.Filled.Info, adminOnly = true)
 )
+
+@Composable
+fun BackNavigationLink(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.size(4.dp))
+        Text(
+            "Volver",
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
