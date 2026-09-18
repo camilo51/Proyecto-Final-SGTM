@@ -7,16 +7,47 @@ data class Client(
     @SerializedName("id")
     val id: String? = null,
 
-    @SerializedName("name")
-    val name: String = "",
+    @SerializedName("document_type")
+    val documentType: String? = "CC",
 
-    // La UI conserva el nombre "cedula", pero el backend usa "document".
     @SerializedName("document")
-    val cedula: String? = null,
+    val document: String? = null,
+
+    @SerializedName("name")
+    val name: String? = null,
+
+    @SerializedName("last_name")
+    val lastName: String? = null,
 
     @SerializedName("email")
-    val email: String = "",
+    val email: String? = null,
 
     @SerializedName("phone")
-    val phone: String = ""
+    val phone: String? = null,
+
+    @SerializedName("status")
+    val status: String? = "Activo"
+)
+
+/** Request fields supported by POST/PUT /clients. */
+data class ClientRequest(
+    @SerializedName("document_type")
+    val documentType: String = "CC",
+
+    @SerializedName("document")
+    val document: String? = null,
+
+    @SerializedName("name")
+    val name: String? = null,
+
+    @SerializedName("last_name")
+    val lastName: String? = null,
+
+    @SerializedName("phone")
+    val phone: String? = null
+)
+
+data class DeleteClientRequest(
+    @SerializedName("reason")
+    val reason: String
 )

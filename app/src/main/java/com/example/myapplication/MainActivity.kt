@@ -35,6 +35,7 @@ import com.example.myapplication.ui.screens.inventory.InventoryDetailScreen
 import com.example.myapplication.ui.screens.inventory.InventoryListScreen
 import com.example.myapplication.ui.screens.inventory.InventoryMovementsScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
+import com.example.myapplication.ui.screens.clients.ClientFormScreen
 import com.example.myapplication.ui.screens.clients.ClientsScreen
 import com.example.myapplication.ui.screens.motorcycles.CreateMotorcycleScreen
 import com.example.myapplication.ui.screens.motorcycles.EditMotorcycleScreen
@@ -44,6 +45,7 @@ import com.example.myapplication.ui.screens.orders.CreateOrderScreen
 import com.example.myapplication.ui.screens.orders.EditOrderScreen
 import com.example.myapplication.ui.screens.orders.OrderDetailScreen
 import com.example.myapplication.ui.screens.orders.OrdersListScreen
+import com.example.myapplication.ui.screens.audit.AuditScreen
 import com.example.myapplication.ui.screens.reports.ReportsScreen
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
@@ -253,11 +255,47 @@ fun MainApp() {
                 ) { padding ->
                     ClientsScreen(
                         contentPadding = padding,
+                        onCreateClient = { navController.navigate(AppRoutes.CreateClient) },
+                        onEditClient = { id -> navController.navigate(AppRoutes.editClient(id)) },
                         viewModel = clientViewModel
                     )
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a clientes")
+            }
+        }
+        composable(AppRoutes.CreateClient) {
+            if (uiState.isAdmin) {
+                ClientFormScreen(
+                    clientId = null,
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    viewModel = clientViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear clientes")
+            }
+        }
+        composable(
+            route = AppRoutes.EditClient,
+            arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+        ) { entry ->
+            val clientId = entry.arguments?.getString("clientId") ?: return@composable
+            if (uiState.isAdmin) {
+                ClientFormScreen(
+                    clientId = clientId,
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    viewModel = clientViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar clientes")
             }
         }
         composable(AppRoutes.Orders) {
@@ -308,6 +346,23 @@ fun MainApp() {
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a reportes")
+            }
+        }
+        composable(AppRoutes.Audit) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Auditoría",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    AuditScreen(contentPadding = padding)
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para consultar la auditoría")
             }
         }
         composable(AppRoutes.Motorcycles) {

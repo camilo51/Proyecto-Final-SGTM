@@ -6,10 +6,12 @@ Este módulo usa únicamente el proyecto Android SGTM, sus modelos existentes y 
 
 ## Clientes
 
-La primera pantalla de Clientes reutiliza el mismo flujo de datos:
+El módulo de Clientes usa el mismo flujo de datos y navegación completa para alta y edición:
 
 ```text
 ClientsScreen
+      ↓ navegación actual
+ClientFormScreen
       ↓
 ClientViewModel
       ↓
@@ -20,25 +22,21 @@ ApiService
 RetrofitClient
 ```
 
-La pantalla usa `GET /clients` y el alta usa el `POST /clients` ya existente. Ambos contratos se interpretan mediante `ApiResponse<T>` y el repositorio
-extrae `data` antes de entregarlo al ViewModel. No se agregaron endpoints nuevos. La autenticación se mantiene centralizada en `RetrofitClient`, por lo que
-el interceptor existente agrega el token Bearer cuando está disponible.
+La pantalla usa `GET /clients`, `POST /clients`, `PUT /clients/{id}` y `DELETE /clients/{id}` ya existentes. Todos los contratos se interpretan mediante `ApiResponse<T>` y el repositorio extrae `data` antes de entregarlo al ViewModel. La autenticación se mantiene centralizada en `RetrofitClient`, por lo que el interceptor existente agrega el token Bearer cuando está disponible.
 
-El modelo Android contiene `id`, `name`, `cedula`, `email` y `phone`. La pantalla muestra los valores disponibles y permite buscar localmente por
-nombre, cédula, correo, teléfono o ID. El formulario de alta no marca ningún campo como obligatorio y deshabilita el botón mientras se procesa la
-operación. No se agregó filtro por estado porque el modelo actual no contiene un campo de estado, ni se inventó una ciudad.
+El contrato del backend también soporta `city`, `status` y `notes`, pero Android no los usa porque no son necesarios para este flujo. La aplicación envía únicamente `document_type`, `document`, `name`, `last_name` y `phone`. `document_type` admite exactamente `CC`, `CE`, `NIT` y `Pasaporte`; si se omite, el servicio usa `CC`.
 
-La UI llama `cedula` al número de identificación, pero Gson lo serializa como `document`, que es el nombre real del campo en el backend. La aplicación muestra el mensaje real del backend si
-la API configurada aplica validaciones adicionales para el alta. Después de crear, se vuelve a consultar `GET /clients`; la respuesta del `POST` no se
-inserta directamente para evitar agregar un cliente incompleto si la API devuelve solamente un acuse o una representación parcial.
+El endpoint efectivo no acepta ni persiste `email` o `address` en el contrato seguro de clientes. Por eso el formulario no los muestra. La búsqueda local usa nombre, apellido, documento, teléfono, ciudad e ID. El campo visible es `Documento` y se serializa como `document`; el campo `Teléfono` se serializa como `phone`.
+
+La pantalla completa `ClientFormScreen` conserva el estilo SGTM y el orden `Tipo de documento`, `Documento`, `Nombre`, `Apellido` y `Teléfono`. Crear y editar reutilizan el mismo formulario, con `Guardar cliente`/`Guardar cambios`, `Cancelar` y `← Volver`. Después de un POST o PUT exitoso se actualiza el listado con `GET /clients` y se regresa a Clientes.
+
+La validación local evita enviar un teléfono colombiano inválido; el backend valida los campos que se diligencien. Los errores 400/422 muestran el detalle de campo cuando está disponible; 401, 403, 404, 409 y 5xx se traducen a mensajes de usuario. La eliminación conserva el borrado lógico del backend y solicita el motivo requerido por `DELETE /clients/{id}`.
 
 La ruta `clients` está disponible desde el Drawer para administradores y conserva las rutas existentes. El módulo contempla carga inicial, refresco,
 error con reintento, lista vacía y búsqueda sin resultados. La lista se pagina localmente en grupos de 10 clientes; la búsqueda reinicia la página en curso.
 `ClientViewModelTest` verifica carga exitosa, error de conexión, filtrado local, paginación, creación y actualización.
 
-La edición se abre desde el icono de editar de cada tarjeta y precarga `name`, `cedula`, `phone` y `email`. Guarda mediante `PUT /clients/{id}`,
-deshabilita el formulario mientras procesa y vuelve a consultar `GET /clients` para mostrar la información confirmada por el servidor. Un correo inválido se
-rechaza localmente y un HTTP 409 se presenta como conflicto de número de documento.
+La edición se abre desde el icono de editar de cada tarjeta y precarga los campos soportados por el backend. Guarda mediante `PUT /clients/{id}`, deshabilita el formulario mientras procesa y vuelve a consultar `GET /clients` para mostrar la información confirmada por el servidor. Un HTTP 409 se presenta como duplicado de documento.
 
 ## Arquitectura
 
