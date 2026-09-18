@@ -36,6 +36,7 @@ import androidx.navigation.NavController
 import com.example.myapplication.data.model.inventory.InventoryMovementDto
 import com.example.myapplication.data.model.inventory.StockMovementAction
 import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.screens.BackLink
 import com.example.myapplication.ui.viewmodel.inventory.InventoryMovementsViewModel
 import java.util.Locale
 import kotlin.math.abs
@@ -69,7 +70,7 @@ fun InventoryMovementsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { InventoryBackLink(onClick = navController::popBackStack) }
+            item { BackLink(onClick = { navController.popBackStack() }) }
             state.item?.let { item ->
                 item { InventorySummary(item) }
             }

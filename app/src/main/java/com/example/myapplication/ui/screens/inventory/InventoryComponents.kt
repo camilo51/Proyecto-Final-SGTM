@@ -1,7 +1,6 @@
 package com.example.myapplication.ui.screens.inventory
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,22 +48,6 @@ internal fun String?.asReadableDate(): String? {
         "dd 'de' MMMM 'de' yyyy 'a las' HH:mm",
         Locale("es", "CO")
     ).format(date)
-}
-
-@Composable
-internal fun InventoryBackLink(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Text(
-        text = "← Volver",
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.SemiBold
-    )
 }
 
 @Composable

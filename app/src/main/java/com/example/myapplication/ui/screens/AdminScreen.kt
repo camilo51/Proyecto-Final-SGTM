@@ -68,7 +68,7 @@ fun AdminScreen(
 
                     MetricsSection(uiState)
 
-                    FinancialSummarySection(uiState.totalSales)
+                    FinancialSummarySection(uiState)
                 }
             }
         }
@@ -156,11 +156,6 @@ private fun DashboardHeader(userName: String?) {
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionButton("PDF")
-                ActionButton("Excel")
-            }
         }
         
         Button(
@@ -174,19 +169,6 @@ private fun DashboardHeader(userName: String?) {
             Spacer(modifier = Modifier.width(8.dp))
             Text("NUEVA ORDEN DE TRABAJO", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
         }
-    }
-}
-
-@Composable
-private fun ActionButton(text: String) {
-    OutlinedButton(
-        onClick = { /* Acción */ },
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
-    ) {
-        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -293,7 +275,8 @@ private fun DashboardMetricCard(
 }
 
 @Composable
-private fun FinancialSummarySection(totalSales: Double) {
+private fun FinancialSummarySection(state: com.example.myapplication.ui.viewmodel.DashboardUiState) {
+    val totalSales = state.totalSales
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -342,6 +325,62 @@ private fun FinancialSummarySection(totalSales: Double) {
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Periodic Summary
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    PeriodicMetricItem(
+                        label = "Día",
+                        value = state.salesDaily,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PeriodicMetricItem(
+                        label = "Quincenal",
+                        value = state.salesBiweekly,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    PeriodicMetricItem(
+                        label = "Mensual",
+                        value = state.salesMonthly,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PeriodicMetricItem(
+                        label = "Anual",
+                        value = state.salesAnnual,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun PeriodicMetricItem(
+    label: String,
+    value: Double,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "$" + String.format(Locale.getDefault(), "%,.2f", value),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

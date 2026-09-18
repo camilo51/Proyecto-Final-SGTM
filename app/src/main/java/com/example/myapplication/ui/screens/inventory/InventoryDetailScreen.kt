@@ -33,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.inventory.StockMovementAction
 import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.screens.BackLink
 import com.example.myapplication.ui.viewmodel.inventory.InventoryDetailViewModel
 
 @Composable
@@ -69,7 +70,7 @@ fun InventoryDetailScreen(
                     modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    InventoryBackLink(onClick = navController::popBackStack)
+                    BackLink(onClick = { navController.popBackStack() })
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(18.dp),

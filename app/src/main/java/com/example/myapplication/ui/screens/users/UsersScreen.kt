@@ -17,12 +17,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.data.model.User
 import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.UserViewModel
 
 @Composable
 fun UsersScreen(
+    navController: NavController,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: UserViewModel = viewModel()
 ) {
@@ -74,8 +77,7 @@ fun UsersScreen(
                 ) {
                     Button(
                         onClick = { 
-                            selectedUser = null
-                            showDialog = true 
+                            navController.navigate(AppRoutes.CreateUser)
                         },
                         modifier = Modifier.weight(1.3f),
                         colors = ButtonDefaults.buttonColors(containerColor = orange),
@@ -145,8 +147,7 @@ fun UsersScreen(
                             UserCard(
                                 user = user,
                                 onEdit = {
-                                    selectedUser = user
-                                    showDialog = true
+                                    user.id?.let { navController.navigate(AppRoutes.editUser(it)) }
                                 },
                                 onDelete = { user.id?.let { viewModel.deleteUser(it) } }
                             )
@@ -158,17 +159,7 @@ fun UsersScreen(
             }
         }
 
-        if (showDialog) {
-            // Show full-screen form instead of dialog
-            UsersFormScreen(
-                user = selectedUser,
-                onBack = {
-                    showDialog = false
-                    viewModel.clearOperationMessage()
-                },
-                viewModel = viewModel
-            )
-        }
+        // No dialog, now uses screen navigation
     }
 
     // Reset dialog when saving completes successfully

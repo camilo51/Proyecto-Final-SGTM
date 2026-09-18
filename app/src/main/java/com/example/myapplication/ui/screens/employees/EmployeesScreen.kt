@@ -18,12 +18,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.data.model.Employee
 import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.EmployeeViewModel
 
 @Composable
 fun EmployeesScreen(
+    navController: NavController,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: EmployeeViewModel = viewModel()
 ) {
@@ -75,8 +78,7 @@ fun EmployeesScreen(
                 ) {
                     Button(
                         onClick = { 
-                            selectedEmployee = null
-                            showDialog = true 
+                            navController.navigate(AppRoutes.CreateEmployee)
                         },
                         modifier = Modifier.weight(1.3f),
                         colors = ButtonDefaults.buttonColors(containerColor = orange),
@@ -146,8 +148,7 @@ fun EmployeesScreen(
                             EmployeeCard(
                                 employee = employee,
                                 onEdit = {
-                                    selectedEmployee = employee
-                                    showDialog = true
+                                    employee.id?.let { navController.navigate(AppRoutes.editEmployee(it)) }
                                 },
                                 onDelete = { employee.id?.let { viewModel.deleteEmployee(it) } }
                             )

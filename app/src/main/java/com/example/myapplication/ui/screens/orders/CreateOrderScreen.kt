@@ -90,7 +90,7 @@ fun CreateOrderScreen(
             value = description,
             onValueChange = { if (it.length <= 2000) description = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Descripción") },
+            placeholder = { Text("Descripción") },
             supportingText = { Text("${description.length}/2000") },
             minLines = 4,
             enabled = !state.isSaving
@@ -99,7 +99,7 @@ fun CreateOrderScreen(
             value = status,
             onValueChange = { status = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Estado") },
+            placeholder = { Text("Estado") },
             supportingText = { Text("Usa un estado aceptado por la API") },
             singleLine = true,
             enabled = !state.isSaving
@@ -108,7 +108,7 @@ fun CreateOrderScreen(
             value = total,
             onValueChange = { total = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Total") },
+            placeholder = { Text("Total") },
             singleLine = true,
             enabled = !state.isSaving
         )

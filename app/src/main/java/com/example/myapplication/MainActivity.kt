@@ -35,8 +35,12 @@ import com.example.myapplication.ui.screens.inventory.InventoryListScreen
 import com.example.myapplication.ui.screens.inventory.InventoryMovementsScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
 import com.example.myapplication.ui.screens.clients.ClientsScreen
+import com.example.myapplication.ui.screens.employees.EmployeeFormScreen
 import com.example.myapplication.ui.screens.employees.EmployeesScreen
+import com.example.myapplication.ui.screens.users.UsersFormScreen
 import com.example.myapplication.ui.screens.users.UsersScreen
+import com.example.myapplication.ui.viewmodel.EmployeeViewModel
+import com.example.myapplication.ui.viewmodel.UserViewModel
 import com.example.myapplication.ui.screens.motorcycles.CreateMotorcycleScreen
 import com.example.myapplication.ui.screens.motorcycles.EditMotorcycleScreen
 import com.example.myapplication.ui.screens.motorcycles.MotorcycleDetailScreen
@@ -77,6 +81,8 @@ fun MainApp() {
     val motorcycleViewModel: MotorcycleViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
     val uiState by loginViewModel.uiState.collectAsState()
+    val employeeViewModel: EmployeeViewModel = viewModel()
+    val userViewModel: UserViewModel = viewModel()
 
     LaunchedEffect(uiState.accessToken) {
         RetrofitClient.setAuthorizationToken(uiState.accessToken)
@@ -127,10 +133,44 @@ fun MainApp() {
                     userName = uiState.user?.name,
                     onLogout = onLogout
                 ) { padding ->
-                    EmployeesScreen(contentPadding = padding)
+                    EmployeesScreen(
+                        contentPadding = padding,
+                        navController = navController,
+                        viewModel = employeeViewModel
+                    )
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a empleados")
+            }
+        }
+        composable(AppRoutes.CreateEmployee) {
+            if (uiState.isAdmin) {
+                EmployeeFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    viewModel = employeeViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear empleados")
+            }
+        }
+        composable(
+            route = AppRoutes.EditEmployee,
+            arguments = listOf(navArgument("employeeId") { type = NavType.StringType })
+        ) { entry ->
+            val id = entry.arguments?.getString("employeeId")
+            val employee = employeeViewModel.uiState.collectAsState().value.employees.find { it.id == id }
+            if (uiState.isAdmin) {
+                EmployeeFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    employee = employee,
+                    viewModel = employeeViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar empleados")
             }
         }
         composable(AppRoutes.Users) {
@@ -142,10 +182,44 @@ fun MainApp() {
                     userName = uiState.user?.name,
                     onLogout = onLogout
                 ) { padding ->
-                    UsersScreen(contentPadding = padding)
+                    UsersScreen(
+                        contentPadding = padding,
+                        navController = navController,
+                        viewModel = userViewModel
+                    )
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a usuarios")
+            }
+        }
+        composable(AppRoutes.CreateUser) {
+            if (uiState.isAdmin) {
+                UsersFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    viewModel = userViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear usuarios")
+            }
+        }
+        composable(
+            route = AppRoutes.EditUser,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { entry ->
+            val id = entry.arguments?.getString("userId")
+            val user = userViewModel.uiState.collectAsState().value.users.find { it.id == id }
+            if (uiState.isAdmin) {
+                UsersFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    user = user,
+                    viewModel = userViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar usuarios")
             }
         }
         composable(AppRoutes.Reports) { PlaceholderScreen("Reportes") }

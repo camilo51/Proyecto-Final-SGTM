@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.screens.BackLink
 import com.example.myapplication.ui.viewmodel.inventory.CreateInventoryViewModel
 
 @Composable
@@ -43,7 +44,7 @@ fun CreateInventoryScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                InventoryBackLink(onClick = navController::popBackStack)
+                BackLink(onClick = { navController.popBackStack() })
                 Text("Registrar repuesto", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("El estado se calculará en el servidor según el stock.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 InventoryFormFields(

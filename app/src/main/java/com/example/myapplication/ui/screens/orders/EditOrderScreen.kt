@@ -90,7 +90,7 @@ private fun EditOrderForm(
             value = description,
             onValueChange = { if (it.length <= 2000) description = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Descripción") },
+            placeholder = { Text("Descripción") },
             supportingText = { Text("${description.length}/2000") },
             minLines = 4,
             enabled = !isSaving
@@ -99,7 +99,7 @@ private fun EditOrderForm(
             value = status,
             onValueChange = { status = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Estado") },
+            placeholder = { Text("Estado") },
             singleLine = true,
             enabled = !isSaving
         )
@@ -107,7 +107,7 @@ private fun EditOrderForm(
             value = total,
             onValueChange = { total = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Total") },
+            placeholder = { Text("Total") },
             singleLine = true,
             enabled = !isSaving
         )

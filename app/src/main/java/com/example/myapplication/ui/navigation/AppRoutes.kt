@@ -18,7 +18,11 @@ object AppRoutes {
     const val EditOrder = "orders/{orderId}/edit"
     
     const val Employees = "employees"
+    const val CreateEmployee = "employees/create"
+    const val EditEmployee = "employees/{employeeId}/edit"
     const val Users = "users"
+    const val CreateUser = "users/create"
+    const val EditUser = "users/{userId}/edit"
     const val Reports = "reports"
     const val Billing = "billing"
     const val CRM = "crm"
@@ -29,4 +33,6 @@ object AppRoutes {
     fun editOrder(id: String): String = "orders/${Uri.encode(id)}/edit"
     fun motorcycleDetail(id: String): String = "motorcycles/${Uri.encode(id)}"
     fun editMotorcycle(id: String): String = "motorcycles/${Uri.encode(id)}/edit"
+    fun editEmployee(id: String): String = "employees/${Uri.encode(id)}/edit"
+    fun editUser(id: String): String = "users/${Uri.encode(id)}/edit"
 }
