@@ -1,6 +1,7 @@
 package com.example.myapplication.data.api
 
 import com.example.myapplication.data.model.Appointment
+import com.example.myapplication.data.model.AuditLog
 import com.example.myapplication.data.model.Brand
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Employee
@@ -88,7 +89,7 @@ interface ApiService {
     // =========================
 
     @GET("users")
-    suspend fun getUsers(): List<User>
+    suspend fun getUsers(): ApiResponse<List<User>>
 
     @GET("users/{id}")
     suspend fun getUser(
@@ -370,6 +371,29 @@ interface ApiService {
     suspend fun deleteOrder(
         @Path("id") id: String
     )
+
+
+    // =========================
+    // AUDIT LOGS
+    // =========================
+
+    @GET("reports/audit-logs")
+    suspend fun getAuditLogs(
+        @Query("search") search: String? = null,
+        @Query("date_from") dateFrom: String? = null,
+        @Query("date_to") dateTo: String? = null,
+        @Query("user_id") userId: String? = null,
+        @Query("action") action: String? = null,
+        @Query("table_name") tableName: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): Response<PaginatedApiResponse<AuditLog>>
+
+    @GET("reports/audit-actions")
+    suspend fun getAuditActions(): Response<ApiResponse<List<String>>>
+
+    @GET("reports/audit-tables")
+    suspend fun getAuditTables(): Response<ApiResponse<List<String>>>
 
 
     // =========================

@@ -13,6 +13,9 @@ data class User(
     @SerializedName("email")
     val email: String,
 
+    @SerializedName("role")
+    val role: String? = null,
+
     @SerializedName("avatar")
     val avatar: String? = null
 )

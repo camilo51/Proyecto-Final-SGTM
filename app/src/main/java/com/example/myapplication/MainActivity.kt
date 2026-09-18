@@ -44,6 +44,7 @@ import com.example.myapplication.ui.screens.orders.CreateOrderScreen
 import com.example.myapplication.ui.screens.orders.EditOrderScreen
 import com.example.myapplication.ui.screens.orders.OrderDetailScreen
 import com.example.myapplication.ui.screens.orders.OrdersListScreen
+import com.example.myapplication.ui.screens.audit.AuditScreen
 import com.example.myapplication.ui.screens.reports.ReportsScreen
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
@@ -308,6 +309,23 @@ fun MainApp() {
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a reportes")
+            }
+        }
+        composable(AppRoutes.Audit) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Auditoría",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    AuditScreen(contentPadding = padding)
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para consultar la auditoría")
             }
         }
         composable(AppRoutes.Motorcycles) {
