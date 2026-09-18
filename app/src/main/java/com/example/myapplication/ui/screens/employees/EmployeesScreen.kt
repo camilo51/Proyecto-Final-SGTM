@@ -217,76 +217,85 @@ private fun EmployeeFormDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (employee == null) "Nuevo empleado" else "Editar empleado") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Documento
-                var expandedTipo by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = tipoDocumento,
-                        onValueChange = {},
-                        label = { Text("Tipo de documento *") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            IconButton(onClick = { expandedTipo = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 420.dp)
+                .verticalScroll(rememberScrollState())
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Documento
+                    var expandedTipo by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = tipoDocumento,
+                            onValueChange = {},
+                            label = { Text("Tipo de documento *") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                IconButton(onClick = { expandedTipo = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
+                            }
+                        )
+                        DropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
+                            tipos.forEach { t -> DropdownMenuItem(text = { Text(t) }, onClick = { tipoDocumento = t; expandedTipo = false }) }
                         }
-                    )
-                    DropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
-                        tipos.forEach { t -> DropdownMenuItem(text = { Text(t) }, onClick = { tipoDocumento = t; expandedTipo = false }) }
                     }
-                }
-                OutlinedTextField(value = documento, onValueChange = { documento = it }, label = { Text("Documento *") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = documento, onValueChange = { documento = it }, label = { Text("Documento *") }, modifier = Modifier.fillMaxWidth())
 
-                // Nombre / Apellido
-                OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = apellido, onValueChange = { apellido = it }, label = { Text("Apellido *") }, modifier = Modifier.fillMaxWidth())
+                    // Nombre / Apellido
+                    OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = apellido, onValueChange = { apellido = it }, label = { Text("Apellido *") }, modifier = Modifier.fillMaxWidth())
 
-                // Teléfono / Correo
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo electrónico") }, modifier = Modifier.fillMaxWidth())
+                    // Teléfono / Correo
+                    OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono *") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo electrónico") }, modifier = Modifier.fillMaxWidth())
 
-                // Especialidad
-                var expandedSpec by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = especialidad,
-                        onValueChange = {},
-                        label = { Text("Especialidad *") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { expandedSpec = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
-                    )
-                    DropdownMenu(expanded = expandedSpec, onDismissRequest = { expandedSpec = false }) {
-                        specialties.forEach { s -> DropdownMenuItem(text = { Text(s) }, onClick = { especialidad = s; expandedSpec = false }) }
+                    // Especialidad
+                    var expandedSpec by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = especialidad,
+                            onValueChange = {},
+                            label = { Text("Especialidad *") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = { IconButton(onClick = { expandedSpec = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
+                        )
+                        DropdownMenu(expanded = expandedSpec, onDismissRequest = { expandedSpec = false }) {
+                            specialties.forEach { s -> DropdownMenuItem(text = { Text(s) }, onClick = { especialidad = s; expandedSpec = false }) }
+                        }
                     }
-                }
 
-                // Tarifa diaria / Comisión
-                OutlinedTextField(value = tarifaDiaria, onValueChange = { tarifaDiaria = it }, label = { Text("Tarifa diaria (COP)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = comision, onValueChange = { comision = it }, label = { Text("Comisión (%)") }, modifier = Modifier.fillMaxWidth())
+                    // Tarifa diaria / Comisión
+                    OutlinedTextField(value = tarifaDiaria, onValueChange = { tarifaDiaria = it }, label = { Text("Tarifa diaria (COP)") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = comision, onValueChange = { comision = it }, label = { Text("Comisión (%)") }, modifier = Modifier.fillMaxWidth())
 
-                // Estado / Fecha de contratación
-                var expandedEstado by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = estado,
-                        onValueChange = {},
-                        label = { Text("Estado") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { expandedEstado = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
-                    )
-                    DropdownMenu(expanded = expandedEstado, onDismissRequest = { expandedEstado = false }) {
-                        estados.forEach { e -> DropdownMenuItem(text = { Text(e) }, onClick = { estado = e; expandedEstado = false }) }
+                    // Estado / Fecha de contratación
+                    var expandedEstado by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = estado,
+                            onValueChange = {},
+                            label = { Text("Estado") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = { IconButton(onClick = { expandedEstado = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
+                        )
+                        DropdownMenu(expanded = expandedEstado, onDismissRequest = { expandedEstado = false }) {
+                            estados.forEach { e -> DropdownMenuItem(text = { Text(e) }, onClick = { estado = e; expandedEstado = false }) }
+                        }
                     }
-                }
-                OutlinedTextField(value = fechaContratacion, onValueChange = { fechaContratacion = it }, label = { Text("Fecha de contratación *") }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = fechaContratacion, onValueChange = { fechaContratacion = it }, label = { Text("Fecha de contratación *") }, modifier = Modifier.fillMaxWidth())
 
-                operationMessage?.let {
-                    Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                    operationMessage?.let {
+                        Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         },
+
         confirmButton = {
             Button(
                 onClick = { onSave("${nombre.trim()} ${apellido.trim()}".trim(), email.trim(), phone.trim(), especialidad) },
