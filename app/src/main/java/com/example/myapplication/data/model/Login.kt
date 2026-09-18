@@ -27,15 +27,27 @@ data class LoginResponse(
     val data: LoginData?
 )
 
+data class LogoutResponse(
+
+    @SerializedName("success")
+    val success: Boolean,
+
+    @SerializedName("message")
+    val message: String,
+
+    @SerializedName("data")
+    val data: Any? = null
+)
+
 data class LoginData(
 
     @SerializedName("user")
     val user: UserDto,
 
-    @SerializedName("access_token")
+    @SerializedName(value = "access_token", alternate = ["accessToken", "token"])
     val accessToken: String? = null,
 
-    @SerializedName("refresh_token")
+    @SerializedName(value = "refresh_token", alternate = ["refreshToken"])
     val refreshToken: String? = null
 )
 
@@ -73,7 +85,7 @@ data class RegisterData(
     @SerializedName("user")
     val user: UserDto? = null,
 
-    @SerializedName("access_token")
+    @SerializedName(value = "access_token", alternate = ["accessToken", "token"])
     val accessToken: String? = null
 )
 
@@ -120,6 +132,15 @@ data class ResetPasswordResponse(
     val message: String
 )
 
+data class ChangePasswordRequest(
+
+    @SerializedName("current_password")
+    val currentPassword: String,
+
+    @SerializedName("new_password")
+    val newPassword: String
+)
+
 
 // =========================
 // USUARIO DEVUELTO POR LOGIN
@@ -130,14 +151,17 @@ data class UserDto(
     @SerializedName("id")
     val id: String? = null,
 
-    @SerializedName("name")
+    @SerializedName("username")
     val name: String? = null,
 
     @SerializedName("email")
     val email: String? = null,
 
     @SerializedName("avatar")
-    val avatar: String? = null
+    val avatar: String? = null,
+
+    @SerializedName("role", alternate = ["rol", "id_rol", "role_id"])
+    val role: String? = null
 )
 
 

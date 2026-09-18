@@ -2,31 +2,32 @@ package com.example.myapplication.data.repository
 
 import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.common.requireData
 
-class ClientRepository(
+open class ClientRepository(
     private val apiService: ApiService
 ) {
 
-    suspend fun getClients(): List<Client> {
-        return apiService.getClients()
+    open suspend fun getClients(): List<Client> {
+        return apiService.getClients().requireData()
     }
 
     suspend fun getClient(id: String): Client {
-        return apiService.getClient(id)
+        return apiService.getClient(id).requireData()
     }
 
-    suspend fun createClient(client: Client): Client {
-        return apiService.createClient(client)
+    open suspend fun createClient(client: Client): Client {
+        return apiService.createClient(client).requireData()
     }
 
-    suspend fun updateClient(
+    open suspend fun updateClient(
         id: String,
         client: Client
     ): Client {
-        return apiService.updateClient(id, client)
+        return apiService.updateClient(id, client).requireData()
     }
 
-    suspend fun deleteClient(id: String) {
+    open suspend fun deleteClient(id: String) {
         apiService.deleteClient(id)
     }
 }
