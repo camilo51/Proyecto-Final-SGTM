@@ -40,6 +40,9 @@ data class Order(
     @SerializedName("status")
     val status: String = "",
 
+    @SerializedName(value = "entry_date", alternate = ["entryDate"])
+    val entryDate: String? = null,
+
     @SerializedName(value = "actual_delivery_date", alternate = ["deliveryDate", "date"])
     val deliveryDate: String? = null,
 
