@@ -356,18 +356,6 @@ private fun ClientCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = "CLIENTE",
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
                 Text(
                     text = clientDisplayName(client),
                     modifier = Modifier.weight(1f),

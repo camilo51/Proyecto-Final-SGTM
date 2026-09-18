@@ -61,6 +61,7 @@ import com.example.myapplication.data.model.Order
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.viewmodel.OrderStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
+import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
@@ -355,6 +356,8 @@ private fun OrderCard(
     val clientLabel = client?.name?.takeIf(String::isNotBlank) ?: "Cliente ${order.clientId}"
     val motorcycleLabel = motorcycle?.let { "${it.brand} ${it.model} · ${it.plate}" }
         ?: "Motocicleta ${order.motorcycleId}"
+    val orderLabel = order.orderNumber?.takeIf(String::isNotBlank) ?: "OT #${order.id ?: "—"}"
+    val entryDateLabel = formatOrderEntryDate(order.entryDate)
 
     Card(
         onClick = onClick,
@@ -372,20 +375,25 @@ private fun OrderCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "OT ${order.id ?: "—"}",
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                        text = orderLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = entryDateLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 var statusMenuExpanded by remember(order.id) { mutableStateOf(false) }
-                Box(modifier = Modifier.weight(1f)) {
+                Box {
                     StatusBadge(
                         status = order.status,
                         isLoading = isUpdatingStatus,
@@ -455,6 +463,23 @@ private fun OrderCard(
             }
         }
     }
+}
+
+private fun formatOrderEntryDate(value: String?): String {
+    val sourceDate = value
+        ?.trim()
+        ?.substringBefore('T')
+        ?.substringBefore(' ')
+        ?.takeIf(String::isNotBlank)
+        ?: return "Fecha no disponible"
+    val parsed = runCatching {
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+            isLenient = false
+        }.parse(sourceDate)
+    }.getOrNull() ?: return "Fecha no disponible"
+
+    return SimpleDateFormat("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"))
+        .format(parsed)
 }
 
 @Composable
