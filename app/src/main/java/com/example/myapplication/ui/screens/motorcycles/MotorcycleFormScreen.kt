@@ -13,6 +13,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,11 +39,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.Motorcycle
+import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.screens.BackNavigationLink
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.viewmodel.MotorcycleStatus
 import com.example.myapplication.ui.viewmodel.MotorcycleInput
@@ -129,7 +134,7 @@ fun EditMotorcycleScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(state.detailErrorMessage ?: "La motocicleta no existe.", color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = navController::popBackStack) { Text("← Volver") }
+                    BackNavigationLink(onClick = navController::popBackStack)
                 }
             else -> key(motorcycle.id) {
                 MotorcycleForm(
@@ -191,7 +196,7 @@ private fun MotorcycleForm(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        TextButton(onClick = onBack, enabled = !state.isSaving) { Text("← Volver") }
+        BackNavigationLink(onClick = onBack, enabled = !state.isSaving)
         Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(
             "Los campos opcionales pueden dejarse vacíos.",
@@ -252,7 +257,7 @@ private fun MotorcycleForm(
             Text("Propietario", style = MaterialTheme.typography.labelLarge)
             Box {
                 OutlinedTextField(
-                    value = state.clientSearchQuery,
+                    value = selectedClient?.name ?: state.clientSearchQuery,
                     onValueChange = viewModel::onClientSearchQueryChange,
                     modifier = Modifier.fillMaxWidth().focusRequester(ownerFocusRequester),
                     label = { Text("Buscar cliente") },
@@ -264,9 +269,10 @@ private fun MotorcycleForm(
                     colors = AppOutlinedTextFieldColors()
                 )
                 DropdownMenu(
-                    expanded = state.clientSearchQuery.isNotBlank() && clientResults.isNotEmpty(),
+                    expanded = clientId == null && state.clientSearchQuery.isNotBlank() && clientResults.isNotEmpty(),
                     onDismissRequest = viewModel::clearClientSearchQuery,
-                    modifier = Modifier.fillMaxWidth(0.92f)
+                    modifier = Modifier.fillMaxWidth(0.92f),
+                    properties = PopupProperties(focusable = false)
                 ) {
                     clientResults.forEach { client ->
                         DropdownMenuItem(
@@ -291,6 +297,7 @@ private fun MotorcycleForm(
             if (state.isLoadingClients) {
                 Text("Cargando propietarios…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            selectedClient?.let { MotorcycleClientSummary(it) }
             Text(
                 when {
                     clientId == null -> "Sin propietario: se enviará client_id = null"
@@ -349,6 +356,39 @@ private fun MotorcycleForm(
         }
         TextButton(onClick = onBack, enabled = !state.isSaving, modifier = Modifier.fillMaxWidth()) {
             Text("Cancelar")
+        }
+    }
+}
+
+@Composable
+private fun MotorcycleClientSummary(client: Client) {
+    val details = listOf(client.document, client.phone, client.email)
+        .filterNotNull()
+        .filter(String::isNotBlank)
+        .joinToString(" · ")
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                "Cliente seleccionado",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                client.name.orEmpty().ifBlank { "Nombre no registrado" },
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (details.isNotBlank()) {
+                Text(
+                    details,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

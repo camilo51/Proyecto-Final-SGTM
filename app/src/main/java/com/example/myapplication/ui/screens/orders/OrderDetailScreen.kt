@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
+import com.example.myapplication.ui.screens.BackNavigationLink
 import com.example.myapplication.ui.viewmodel.OrderStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
@@ -60,7 +61,7 @@ fun OrderDetailScreen(
     } else if (order == null || order.id != orderId) {
         Column(Modifier.padding(contentPadding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(state.detailErrorMessage ?: "No se encontró la orden", color = MaterialTheme.colorScheme.error)
-            Button(onClick = onBack) { Text("Volver") }
+            BackNavigationLink(onClick = onBack)
         }
     } else {
         OrderDetailContent(
@@ -72,7 +73,7 @@ fun OrderDetailScreen(
             },
             employeeLabel = state.employees.firstOrNull { it.id == order.assignedEmployeeId }
                 ?.let { employee ->
-                    listOf(employee.name, employee.lastName)
+                    listOf(employee.name.orEmpty(), employee.lastName.orEmpty())
                         .filter(String::isNotBlank)
                         .joinToString(" ")
                         .ifBlank { "Técnico sin nombre" }
@@ -134,6 +135,10 @@ private fun OrderDetailContent(
         modifier = Modifier.padding(contentPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        BackNavigationLink(
+            onClick = onBack,
+            enabled = !isSaving && !isUpdatingStatus && !isDeleting
+        )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Orden #${order.id}", style = MaterialTheme.typography.headlineSmall)
             FilterChip(
@@ -182,9 +187,6 @@ private fun OrderDetailContent(
         }
         Button(onClick = onDelete, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
             Text("Eliminar orden")
-        }
-        TextButton(onClick = onBack, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
-            Text("Volver")
         }
     }
 }

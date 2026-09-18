@@ -72,7 +72,7 @@ fun ProfileScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            TextButton(onClick = onBack) { Text("← Volver") }
+            BackNavigationLink(onClick = onBack)
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

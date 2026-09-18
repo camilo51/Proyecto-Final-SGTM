@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
+import com.example.myapplication.ui.screens.BackNavigationLink
 import com.example.myapplication.ui.viewmodel.OrderValidator
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import com.example.myapplication.ui.viewmodel.OrderStatus
@@ -59,16 +60,21 @@ fun CreateOrderScreen(
     val statusOptions = OrderStatus.changeableValues
     val employeeOptions = listOf(OrderDropdownOption("", "Sin asignar")) + state.employees.mapNotNull { employee ->
         employee.id?.let { id ->
-            val fullName = listOf(employee.name, employee.lastName)
+            val fullName = listOf(employee.name.orEmpty(), employee.lastName.orEmpty())
                 .filter(String::isNotBlank)
                 .joinToString(" ")
                 .ifBlank { "Técnico sin nombre" }
             OrderDropdownOption(
                 id = id,
-                label = listOf(fullName, employee.specialty)
+                label = listOf(fullName, employee.specialty.orEmpty())
                     .filter(String::isNotBlank)
                     .joinToString(" · "),
-                searchText = listOf(fullName, employee.specialty, employee.phone, employee.email.orEmpty())
+                searchText = listOf(
+                    fullName,
+                    employee.specialty.orEmpty(),
+                    employee.phone.orEmpty(),
+                    employee.email.orEmpty()
+                )
                     .joinToString(" ")
             )
         }
@@ -78,7 +84,12 @@ fun CreateOrderScreen(
             OrderDropdownOption(
                 id = it,
                 label = client.name.orEmpty().ifBlank { "Cliente sin nombre" },
-                searchText = listOf(client.name.orEmpty(), client.document.orEmpty(), client.phone.orEmpty(), client.email.orEmpty())
+                searchText = listOf(
+                    client.name.orEmpty(),
+                    client.document.orEmpty(),
+                    client.phone.orEmpty(),
+                    client.email.orEmpty()
+                )
                     .joinToString(" ")
             )
         }
@@ -101,6 +112,7 @@ fun CreateOrderScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        BackNavigationLink(onClick = onBack, enabled = !state.isSaving)
         Text("Nueva orden", style = MaterialTheme.typography.headlineSmall)
         Text(
             "Los campos disponibles corresponden al modelo Order actual.",
@@ -112,7 +124,7 @@ fun CreateOrderScreen(
             selectedId = clientId,
             options = clientOptions,
             enabled = !state.isSaving,
-            searchable = true,
+            autocomplete = true,
             searchPlaceholder = "Nombre, documento, teléfono o correo",
             onSelected = viewModel::selectClient
         )
@@ -141,8 +153,6 @@ fun CreateOrderScreen(
             selectedId = assignedEmployeeId,
             options = employeeOptions,
             enabled = !state.isSaving,
-            searchable = true,
-            searchPlaceholder = "Nombre, especialidad o teléfono",
             onSelected = { assignedEmployeeId = it }
         )
         OutlinedTextField(
@@ -212,9 +222,6 @@ fun CreateOrderScreen(
         ) {
             if (state.isSaving) CircularProgressIndicator() else Text("Crear orden")
         }
-        Button(onClick = onBack, enabled = !state.isSaving, modifier = Modifier.fillMaxWidth()) {
-            Text("Cancelar")
-        }
     }
 }
 
@@ -223,7 +230,7 @@ private fun ClientSelectionSummary(client: Client) {
     SelectionSummaryCard(
         title = "Cliente seleccionado",
         primary = client.name.orEmpty().ifBlank { "Nombre no registrado" },
-        secondary = listOf(client.document, client.phone?.takeIf(String::isNotBlank))
+        secondary = listOf(client.document, client.phone.orEmpty().takeIf(String::isNotBlank))
             .filterNotNull()
             .filter(String::isNotBlank)
             .joinToString(" · ")

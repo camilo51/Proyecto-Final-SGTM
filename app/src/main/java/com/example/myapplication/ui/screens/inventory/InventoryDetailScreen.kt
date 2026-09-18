@@ -67,13 +67,16 @@ fun InventoryDetailScreen(
     ) { padding ->
         when {
             state.isLoading && state.item == null -> CircularProgressIndicator(modifier = Modifier.padding(padding))
-            state.item == null -> InventoryMessage(
-                title = "Repuesto no disponible",
-                detail = state.errorMessage ?: "No se encontró el repuesto solicitado.",
-                actionLabel = "Volver",
-                onAction = { navController.popBackStack() },
-                modifier = Modifier.padding(padding).padding(16.dp)
-            )
+            state.item == null -> Column(
+                modifier = Modifier.padding(padding).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InventoryBackLink(onClick = navController::popBackStack)
+                InventoryMessage(
+                    title = "Repuesto no disponible",
+                    detail = state.errorMessage ?: "No se encontró el repuesto solicitado."
+                )
+            }
             else -> {
                 val item = state.item ?: return@AppScaffold
                 Column(

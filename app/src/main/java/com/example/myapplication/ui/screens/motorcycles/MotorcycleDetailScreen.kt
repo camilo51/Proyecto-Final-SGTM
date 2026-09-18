@@ -14,7 +14,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,6 +27,7 @@ import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.screens.BackNavigationLink
 import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
 
 @Composable
@@ -63,7 +63,7 @@ fun MotorcycleDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(state.detailErrorMessage ?: "La motocicleta no existe.", color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = navController::popBackStack) { Text("← Volver") }
+                    BackNavigationLink(onClick = navController::popBackStack)
                 }
             else -> MotorcycleDetailContent(
                 motorcycle = motorcycle,
@@ -93,7 +93,7 @@ private fun MotorcycleDetailContent(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        TextButton(onClick = onBack, enabled = !isSaving) { Text("← Volver") }
+        BackNavigationLink(onClick = onBack, enabled = !isSaving)
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -127,7 +127,6 @@ private fun MotorcycleDetailContent(
         }
 
         Button(onClick = onEdit, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) { Text("Editar") }
-        TextButton(onClick = onBack, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) { Text("← Volver") }
     }
 }
 
