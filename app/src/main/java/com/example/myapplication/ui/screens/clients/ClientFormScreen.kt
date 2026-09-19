@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.screens.FormHeader
+import com.example.myapplication.ui.screens.FormPrimaryButton
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.viewmodel.ClientFormState
 import com.example.myapplication.ui.viewmodel.ClientViewModel
@@ -122,13 +124,10 @@ private fun ClientFormContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            TextButton(onClick = onBack, enabled = !isSaving) {
-                Text("← Volver")
-            }
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(
-                "Completa la información del cliente. Los campos que diligencies se validan según las reglas del servicio.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            FormHeader(
+                title = title,
+                subtitle = "Completa la información del cliente. Los campos que diligencies se validan según las reglas del servicio.",
+                onBack = onBack
             )
 
             ClientDocumentTypeField(
@@ -171,26 +170,17 @@ private fun ClientFormContent(
                 )
             }
 
-            Button(
+            FormPrimaryButton(
+                text = submitLabel,
                 onClick = onSave,
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !isSaving && !form.isLoading
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(submitLabel)
-                }
-            }
+            )
             TextButton(
                 onClick = onBack,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
                 enabled = !isSaving
             ) {
-                Text("Cancelar")
+                Text("Cancelar", color = MaterialTheme.colorScheme.primary)
             }
         }
 

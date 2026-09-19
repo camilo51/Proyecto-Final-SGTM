@@ -110,7 +110,7 @@ private fun InventoryTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(label) },
+            placeholder = { Text(label) },
             isError = error != null,
             singleLine = singleLine,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType)

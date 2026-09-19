@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.ui.screens.FormHeader
+import com.example.myapplication.ui.screens.FormPrimaryButton
 import com.example.myapplication.ui.screens.orders.OrderDropdownOption
 import com.example.myapplication.ui.screens.orders.OrderReferenceDropdown
 import com.example.myapplication.ui.screens.orders.formatOrderMoney
@@ -82,23 +84,10 @@ fun CreateInvoiceScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.clickable(enabled = !state.isSaving, onClick = onBack),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.size(4.dp))
-            Text("Volver", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
-        }
-        Text("Nueva factura", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(
-            "El cliente y el total se toman de la orden de trabajo seleccionada.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FormHeader(
+            title = "Nueva factura",
+            subtitle = "El cliente y el total se toman de la orden de trabajo seleccionada.",
+            onBack = onBack
         )
 
         if (state.isLoadingReferences) {
@@ -139,17 +128,11 @@ fun CreateInvoiceScreen(
         state.operationMessage?.let { message ->
             Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
-        Button(
+        FormPrimaryButton(
+            text = "Emitir factura",
             onClick = { viewModel.createInvoice(orderId, paymentMethod, notes) },
-            modifier = Modifier.fillMaxWidth(),
             enabled = !state.isSaving && !state.isLoadingReferences
-        ) {
-            if (state.isSaving) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            } else {
-                Text("Emitir factura")
-            }
-        }
+        )
         Spacer(Modifier.size(8.dp))
     }
 }

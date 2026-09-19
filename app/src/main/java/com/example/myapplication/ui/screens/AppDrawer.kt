@@ -88,6 +88,8 @@ data class AppMenuItem(
 val appMenuItems = listOf(
     AppMenuItem(AppRoutes.Admin, "Dashboard", Icons.Filled.Home),
     AppMenuItem(AppRoutes.Clients, "Clientes", Icons.Filled.Person, adminOnly = true),
+    AppMenuItem(AppRoutes.Users, "Usuarios", Icons.Filled.Face, adminOnly = true),
+    AppMenuItem(AppRoutes.Employees, "Empleados", Icons.Filled.AccountCircle, adminOnly = true),
     AppMenuItem(AppRoutes.Motorcycles, "Motocicletas", Icons.Filled.Build, adminOnly = true),
     AppMenuItem(AppRoutes.Orders, "Órdenes de trabajo", Icons.AutoMirrored.Filled.List, adminOnly = true),
     AppMenuItem(AppRoutes.Inventory, "Inventario", Icons.Filled.ShoppingCart, adminOnly = true),

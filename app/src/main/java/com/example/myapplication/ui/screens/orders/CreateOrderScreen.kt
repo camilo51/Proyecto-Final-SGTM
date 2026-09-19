@@ -30,6 +30,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.ui.screens.BackNavigationLink
+import com.example.myapplication.ui.screens.FormHeader
+import com.example.myapplication.ui.screens.FormPrimaryButton
 import com.example.myapplication.ui.viewmodel.OrderValidator
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import com.example.myapplication.ui.viewmodel.OrderStatus
@@ -112,11 +114,10 @@ fun CreateOrderScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        BackNavigationLink(onClick = onBack, enabled = !state.isSaving)
-        Text("Nueva orden", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Los campos disponibles corresponden al modelo Order actual.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        FormHeader(
+            title = "Nueva orden",
+            subtitle = "Los campos disponibles corresponden al modelo Order actual.",
+            onBack = onBack
         )
 
         OrderReferenceDropdown(
@@ -205,7 +206,8 @@ fun CreateOrderScreen(
             Text(message, color = MaterialTheme.colorScheme.error)
         }
 
-        Button(
+        FormPrimaryButton(
+            text = "Crear orden",
             onClick = {
                 viewModel.createOrder(
                     clientId = clientId,
@@ -217,11 +219,8 @@ fun CreateOrderScreen(
                     discountText = discount
                 )
             },
-            modifier = Modifier.fillMaxWidth(),
             enabled = !state.isSaving
-        ) {
-            if (state.isSaving) CircularProgressIndicator() else Text("Crear orden")
-        }
+        )
     }
 }
 
