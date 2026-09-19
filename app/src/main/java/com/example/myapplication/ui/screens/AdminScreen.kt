@@ -13,6 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,6 +87,8 @@ fun AdminScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopSearchBar(onOpenDrawer: () -> Unit) {
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -97,8 +102,8 @@ private fun TopSearchBar(onOpenDrawer: () -> Unit) {
         }
 
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
             modifier = Modifier
                 .weight(1f)
                 .height(52.dp),
