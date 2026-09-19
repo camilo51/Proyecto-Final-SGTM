@@ -20,6 +20,10 @@ data class DashboardUiState(
     val deliveredOrders: Int = 0,
     val lowStockCount: Int = 0,
     val totalSales: Double = 0.0,
+    val salesDaily: Double = 0.0,
+    val salesBiweekly: Double = 0.0,
+    val salesMonthly: Double = 0.0,
+    val salesAnnual: Double = 0.0,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

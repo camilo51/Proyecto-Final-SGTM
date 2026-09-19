@@ -20,6 +20,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.screens.BackLink
+import com.example.myapplication.ui.screens.FormHeader
 import com.example.myapplication.ui.viewmodel.inventory.EditInventoryViewModel
 
 @Composable
@@ -56,9 +58,11 @@ fun EditInventoryScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                InventoryBackLink(onClick = navController::popBackStack)
-                Text("Editar repuesto", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("El estado no se edita: el backend lo recalcula.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                FormHeader(
+                    title = "Editar repuesto",
+                    subtitle = "El estado no se edita: el backend lo recalcula.",
+                    onBack = { navController.popBackStack() }
+                )
                 InventoryFormFields(
                     state = state,
                     submitLabel = "Guardar cambios",

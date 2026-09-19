@@ -40,6 +40,10 @@ import com.example.myapplication.ui.screens.invoices.InvoiceDetailScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
 import com.example.myapplication.ui.screens.clients.ClientFormScreen
 import com.example.myapplication.ui.screens.clients.ClientsScreen
+import com.example.myapplication.ui.screens.employees.EmployeeFormScreen
+import com.example.myapplication.ui.screens.employees.EmployeesScreen
+import com.example.myapplication.ui.screens.users.UsersFormScreen
+import com.example.myapplication.ui.screens.users.UsersScreen
 import com.example.myapplication.ui.screens.motorcycles.CreateMotorcycleScreen
 import com.example.myapplication.ui.screens.motorcycles.EditMotorcycleScreen
 import com.example.myapplication.ui.screens.motorcycles.MotorcycleDetailScreen
@@ -53,11 +57,13 @@ import com.example.myapplication.ui.screens.reports.ReportsScreen
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.ClientViewModel
+import com.example.myapplication.ui.viewmodel.EmployeeViewModel
 import com.example.myapplication.ui.viewmodel.LoginViewModel
 import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
 import com.example.myapplication.ui.viewmodel.InvoiceViewModel
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import com.example.myapplication.ui.viewmodel.ProfileViewModel
+import com.example.myapplication.ui.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -85,6 +91,8 @@ fun MainApp() {
     val invoiceViewModel: InvoiceViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
     val profileViewModel: ProfileViewModel = viewModel()
+    val userViewModel: UserViewModel = viewModel()
+    val employeeViewModel: EmployeeViewModel = viewModel()
     val uiState by loginViewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.accessToken) {
@@ -267,6 +275,108 @@ fun MainApp() {
                 }
             } else {
                 PlaceholderScreen("No tienes permisos para acceder a clientes")
+            }
+        }
+        composable(AppRoutes.Users) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Usuarios",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    UsersScreen(
+                        navController = navController,
+                        contentPadding = padding,
+                        viewModel = userViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a usuarios")
+            }
+        }
+        composable(AppRoutes.CreateUser) {
+            if (uiState.isAdmin) {
+                UsersFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    viewModel = userViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear usuarios")
+            }
+        }
+        composable(
+            route = AppRoutes.EditUser,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { entry ->
+            val userId = entry.arguments?.getString("userId") ?: return@composable
+            if (uiState.isAdmin) {
+                val user = userViewModel.uiState.collectAsState().value.users.find { it.id == userId }
+                UsersFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    user = user,
+                    viewModel = userViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar usuarios")
+            }
+        }
+        composable(AppRoutes.Employees) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Empleados",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    EmployeesScreen(
+                        navController = navController,
+                        contentPadding = padding,
+                        viewModel = employeeViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a empleados")
+            }
+        }
+        composable(AppRoutes.CreateEmployee) {
+            if (uiState.isAdmin) {
+                EmployeeFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    viewModel = employeeViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear empleados")
+            }
+        }
+        composable(
+            route = AppRoutes.EditEmployee,
+            arguments = listOf(navArgument("employeeId") { type = NavType.StringType })
+        ) { entry ->
+            val employeeId = entry.arguments?.getString("employeeId") ?: return@composable
+            if (uiState.isAdmin) {
+                val employee = employeeViewModel.uiState.collectAsState().value.employees.find { it.id == employeeId }
+                EmployeeFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    employee = employee,
+                    viewModel = employeeViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar empleados")
             }
         }
         composable(AppRoutes.CreateClient) {
