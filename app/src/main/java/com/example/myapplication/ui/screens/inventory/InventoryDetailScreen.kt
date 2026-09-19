@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.data.model.inventory.StockMovementAction
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.screens.BackLink
@@ -42,6 +43,8 @@ fun InventoryDetailScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: InventoryDetailViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -54,16 +57,27 @@ fun InventoryDetailScreen(
         }
     }
 
-    AppScaffold("Detalle de repuesto", navController, isAdmin = true, userName = userName, onLogout = onLogout) { padding ->
+    AppScaffold(
+        "Detalle de repuesto",
+        navController,
+        isAdmin = true,
+        userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
+        onLogout = onLogout
+    ) { padding ->
         when {
             state.isLoading && state.item == null -> CircularProgressIndicator(modifier = Modifier.padding(padding))
-            state.item == null -> InventoryMessage(
-                title = "Repuesto no disponible",
-                detail = state.errorMessage ?: "No se encontró el repuesto solicitado.",
-                actionLabel = "Volver",
-                onAction = { navController.popBackStack() },
-                modifier = Modifier.padding(padding).padding(16.dp)
-            )
+            state.item == null -> Column(
+                modifier = Modifier.padding(padding).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InventoryBackLink(onClick = navController::popBackStack)
+                InventoryMessage(
+                    title = "Repuesto no disponible",
+                    detail = state.errorMessage ?: "No se encontró el repuesto solicitado."
+                )
+            }
             else -> {
                 val item = state.item ?: return@AppScaffold
                 Column(

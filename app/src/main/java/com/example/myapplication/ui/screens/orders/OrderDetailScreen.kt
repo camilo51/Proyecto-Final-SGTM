@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -28,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
+import com.example.myapplication.ui.screens.BackNavigationLink
+import com.example.myapplication.ui.viewmodel.OrderStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 @Composable
@@ -41,7 +44,10 @@ fun OrderDetailScreen(
     val state by viewModel.uiState.collectAsState()
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
-    LaunchedEffect(orderId) { viewModel.loadOrder(orderId) }
+    LaunchedEffect(orderId) {
+        viewModel.loadOrder(orderId)
+        viewModel.loadReferences()
+    }
     LaunchedEffect(state.deletedOrderId) {
         if (state.deletedOrderId == orderId) {
             viewModel.consumeOperationEvent()
@@ -55,7 +61,7 @@ fun OrderDetailScreen(
     } else if (order == null || order.id != orderId) {
         Column(Modifier.padding(contentPadding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(state.detailErrorMessage ?: "No se encontró la orden", color = MaterialTheme.colorScheme.error)
-            Button(onClick = onBack) { Text("Volver") }
+            BackNavigationLink(onClick = onBack)
         }
     } else {
         OrderDetailContent(
@@ -65,8 +71,18 @@ fun OrderDetailScreen(
             motorcycleLabel = state.motorcycles.firstOrNull { it.id == order.motorcycleId }?.let {
                 "${it.brand} ${it.model} · ${it.plate}"
             },
-            statuses = (state.statuses + order.status).filter(String::isNotBlank).distinct(),
+            employeeLabel = state.employees.firstOrNull { it.id == order.assignedEmployeeId }
+                ?.let { employee ->
+                    listOf(employee.name.orEmpty(), employee.lastName.orEmpty())
+                        .filter(String::isNotBlank)
+                        .joinToString(" ")
+                        .ifBlank { "Técnico sin nombre" }
+                },
+            statuses = (state.statuses + OrderStatus.changeableValues + order.status)
+                .filter(String::isNotBlank)
+                .distinct(),
             isSaving = state.isSaving,
+            isUpdatingStatus = state.updatingOrderId == order.id,
             isDeleting = state.isDeleting,
             operationMessage = state.operationMessage,
             onStatusChange = viewModel::changeStatus,
@@ -102,8 +118,10 @@ private fun OrderDetailContent(
     contentPadding: PaddingValues,
     clientName: String?,
     motorcycleLabel: String?,
+    employeeLabel: String?,
     statuses: List<String>,
     isSaving: Boolean,
+    isUpdatingStatus: Boolean,
     isDeleting: Boolean,
     operationMessage: String?,
     onStatusChange: (String) -> Unit,
@@ -117,12 +135,26 @@ private fun OrderDetailContent(
         modifier = Modifier.padding(contentPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        BackNavigationLink(
+            onClick = onBack,
+            enabled = !isSaving && !isUpdatingStatus && !isDeleting
+        )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Orden #${order.id}", style = MaterialTheme.typography.headlineSmall)
             FilterChip(
                 selected = false,
                 onClick = { statusMenuExpanded = true },
-                label = { Text(order.status) }
+                enabled = !isSaving && !isDeleting && !isUpdatingStatus,
+                label = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(order.status.ifBlank { "Sin estado" })
+                        if (isUpdatingStatus) {
+                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("▼", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
             )
         }
         DropdownMenu(
@@ -139,23 +171,22 @@ private fun OrderDetailContent(
 
         DetailLine("Cliente", clientName ?: order.clientId)
         DetailLine("Motocicleta", motorcycleLabel ?: order.motorcycleId)
+        DetailLine("Técnico", employeeLabel ?: "Sin asignar")
         DetailLine("Descripción", order.description)
-        DetailLine("Total", formatOrderMoney(order.total))
-        Text(
-            "Servicios y repuestos no están disponibles en el modelo Order ni en ApiService actual.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        OrderTotalsDetail(
+            laborCost = order.laborCost ?: 0.0,
+            servicesCost = order.servicesCost ?: 0.0,
+            partsCost = order.partsCost ?: 0.0,
+            discount = order.discount ?: 0.0,
+            total = order.total
         )
-        operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
-        Button(onClick = onEdit, enabled = !isSaving && !isDeleting, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onEdit, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
             Text("Editar orden")
         }
-        Button(onClick = onDelete, enabled = !isSaving && !isDeleting, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onDelete, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
             Text("Eliminar orden")
-        }
-        TextButton(onClick = onBack, enabled = !isSaving && !isDeleting, modifier = Modifier.fillMaxWidth()) {
-            Text("Volver")
         }
     }
 }
@@ -165,5 +196,23 @@ private fun DetailLine(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun OrderTotalsDetail(
+    laborCost: Double,
+    servicesCost: Double,
+    partsCost: Double,
+    discount: Double,
+    total: Double
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Totales", style = MaterialTheme.typography.titleMedium)
+        DetailLine("Mano de obra", formatOrderMoney(laborCost))
+        DetailLine("Servicios", formatOrderMoney(servicesCost))
+        DetailLine("Repuestos", formatOrderMoney(partsCost))
+        DetailLine("Descuento", "− ${formatOrderMoney(discount)}")
+        DetailLine("Total", formatOrderMoney(total))
     }
 }

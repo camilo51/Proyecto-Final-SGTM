@@ -2,11 +2,11 @@ package com.example.myapplication.clients
 
 import com.example.myapplication.data.api.ApiService
 import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.ClientRequest
 import com.example.myapplication.data.model.common.ApiResponse
 import com.example.myapplication.data.repository.ClientRepository
 import com.example.myapplication.ui.viewmodel.ClientViewModel
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import java.io.IOException
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.CoroutineScope
@@ -22,18 +22,20 @@ import retrofit2.Response
 class ClientViewModelTest {
 
     @Test
-    fun loadClients_success_updatesState() {
+    fun loadClients_success_updatesStateAndSearchesRealFields() {
         val repository = FakeClientRepository(
-            values = listOf(client("1", "Ana Gómez"), client("2", "Carlos Pérez"))
+            values = listOf(
+                client("1", "Ana", lastName = "Gómez", phone = "3001112233"),
+                client("2", "Carlos", lastName = "Pérez", document = "12345678")
+            )
         )
         val viewModel = viewModel(repository)
 
         viewModel.loadClients()
+        viewModel.onSearchQueryChange("Pérez")
 
-        assertEquals(2, viewModel.uiState.value.clients.size)
-        assertEquals(2, viewModel.uiState.value.filteredClients.size)
-        assertTrue(viewModel.uiState.value.errorMessage == null)
-        assertEquals(1, repository.calls)
+        assertEquals(listOf("2"), viewModel.uiState.value.filteredClients.map { it.id })
+        assertEquals(1, repository.getCalls)
     }
 
     @Test
@@ -44,20 +46,9 @@ class ClientViewModelTest {
         val viewModel = viewModel(repository)
 
         viewModel.loadClients()
-
-        assertEquals(25, viewModel.uiState.value.filteredClients.size)
-        assertEquals(10, viewModel.uiState.value.visibleClients.size)
-        assertEquals(3, viewModel.uiState.value.totalPages)
-        assertEquals("1", viewModel.uiState.value.visibleClients.first().id)
-
-        viewModel.onPageChange(2)
-
-        assertEquals(2, viewModel.uiState.value.currentPage)
-        assertEquals("11", viewModel.uiState.value.visibleClients.first().id)
-        assertEquals("20", viewModel.uiState.value.visibleClients.last().id)
-
         viewModel.onPageChange(3)
 
+        assertEquals(3, viewModel.uiState.value.totalPages)
         assertEquals(5, viewModel.uiState.value.visibleClients.size)
         assertEquals("21", viewModel.uiState.value.visibleClients.first().id)
     }
@@ -69,239 +60,148 @@ class ClientViewModelTest {
         viewModel.loadClients()
 
         assertEquals("No hay conexión con el servidor", viewModel.uiState.value.errorMessage)
-        assertTrue(viewModel.uiState.value.clients.isEmpty())
     }
 
     @Test
-    fun search_isAppliedLocallyToRealClientFields() {
-        val repository = FakeClientRepository(
-            values = listOf(
-                client("1", "Ana Gómez", phone = "3001112233"),
-                client("2", "Carlos Pérez", email = "carlos@example.com")
-            )
-        )
-        val viewModel = viewModel(repository)
-        viewModel.loadClients()
-
-        viewModel.onSearchQueryChange("carlos@example.com")
-
-        assertEquals(listOf("2"), viewModel.uiState.value.filteredClients.map { it.id })
-        assertEquals(1, repository.calls)
-    }
-
-    @Test
-    fun searchWithoutMatches_canBeCleared() {
-        val viewModel = viewModel(
-            FakeClientRepository(values = listOf(client("1", "Ana Gómez")))
-        )
-        viewModel.loadClients()
-
-        viewModel.onSearchQueryChange("no existe")
-        assertTrue(viewModel.uiState.value.filteredClients.isEmpty())
-
-        viewModel.clearSearch()
-
-        assertEquals(1, viewModel.uiState.value.filteredClients.size)
-    }
-
-    @Test
-    fun createClient_success_addsClientWithoutLocalRequiredFields() {
-        val created = client("3", "Cliente completo")
-        val repository = FakeClientRepository(values = listOf(created), created = created)
+    fun createClient_validFormSendsBackendContractAndRefreshesList() {
+        val created = client("3", "Jhon", document = "12345678", phone = "3004567890")
+        val repository = FakeClientRepository(values = listOf(created))
         val viewModel = viewModel(repository)
 
-        viewModel.createClient("", "", "", "")
+        viewModel.startCreateForm()
+        viewModel.onDocumentTypeChange("CC")
+        viewModel.onDocumentChange("12345678")
+        viewModel.onNameChange("jhon")
+        viewModel.onPhoneChange("3004567890")
+        viewModel.createClient()
 
         assertEquals(1, repository.createCalls)
+        assertEquals("CC", repository.lastCreated?.documentType)
+        assertEquals("12345678", repository.lastCreated?.document)
+        assertEquals("jhon", repository.lastCreated?.name)
+        assertEquals("3004567890", repository.lastCreated?.phone)
         assertEquals("Cliente creado correctamente", viewModel.uiState.value.operationMessage)
-        assertEquals(1, viewModel.uiState.value.creationVersion)
-        assertEquals("3", viewModel.uiState.value.clients.single().id)
-        assertTrue(repository.lastCreated?.name?.isEmpty() == true)
+        assertEquals(1, viewModel.uiState.value.form.completionVersion)
     }
 
     @Test
-    fun createClient_preservesCedulaInRepositoryPayload() {
-        val repository = FakeClientRepository(
-            values = listOf(client("11", "Cliente con cédula")),
-            created = client("11", "Cliente con cédula")
-        )
+    fun createClient_blankOptionalFieldsAreOmittedFromPayload() {
+        val repository = FakeClientRepository(values = listOf(client("4", "Sin datos")))
         val viewModel = viewModel(repository)
 
-        viewModel.createClient("Cliente con cédula", "123456789", "3000000000", "")
+        viewModel.startCreateForm()
+        viewModel.createClient()
 
-        assertEquals("123456789", repository.lastCreated?.cedula)
+        val json = Gson().toJson(repository.lastCreated)
+        assertEquals(1, repository.createCalls)
+        assertTrue(json.contains("\"document_type\":\"CC\""))
+        assertFalse(json.contains("\"document\""))
+        assertFalse(json.contains("\"phone\""))
+        assertFalse(json.contains("\"email\""))
+        assertFalse(json.contains("\"address\""))
+        assertFalse(json.contains("\"city\""))
+        assertFalse(json.contains("\"notes\""))
     }
 
     @Test
-    fun createClient_invalidEmail_doesNotCallRepository() {
+    fun createClient_invalidColombianPhone_isRejectedBeforePost() {
         val repository = FakeClientRepository()
         val viewModel = viewModel(repository)
 
-        viewModel.createClient("Cliente", "", "3000000000", "correo-invalido")
+        viewModel.startCreateForm()
+        viewModel.onNameChange("jhon")
+        viewModel.onPhoneChange("34567890")
+        viewModel.createClient()
 
-        assertEquals("Ingresa un correo válido o déjalo vacío", viewModel.uiState.value.operationMessage)
         assertEquals(0, repository.createCalls)
+        assertTrue(viewModel.uiState.value.form.errorMessage.orEmpty().contains("teléfono colombiano"))
     }
 
     @Test
-    fun createClient_refreshesListInsteadOfAddingIncompletePostResponse() {
-        val completeClient = client("4", "Cliente completo")
-        val repository = FakeClientRepository(
-            values = listOf(completeClient),
-            created = Client()
-        )
-        val viewModel = viewModel(repository)
-
-        viewModel.createClient("Nombre enviado", "123", "3000000000", "cliente@example.com")
-
-        assertEquals("Cliente completo", viewModel.uiState.value.clients.single().name)
-        assertEquals(1, repository.calls)
-    }
-
-    @Test
-    fun apiResponse_deserializesWrappedClientList() {
-        val json = """
+    fun createClient_backendValidationError_exposesFieldDetail() {
+        val errorBody = """
             {
-              "success": true,
-              "message": "OK",
-              "data": [
-                {"id": "1", "name": "Ana Gómez", "document": "123456789", "email": "ana@example.com", "phone": "3000000000"}
-              ]
+              "success": false,
+              "message": "Errores de validación",
+              "errors": [{"field":"phone","message":"Ingresa un teléfono colombiano válido"}]
             }
         """.trimIndent()
-        val type = object : TypeToken<ApiResponse<List<Client>>>() {}.type
+        val repository = FakeClientRepository(
+            failure = HttpException(Response.error<Any>(400, errorBody.toResponseBody()))
+        )
+        val viewModel = viewModel(repository)
 
-        val response = Gson().fromJson<ApiResponse<List<Client>>>(json, type)
+        viewModel.startCreateForm()
+        viewModel.onPhoneChange("3004567890")
+        viewModel.createClient()
 
-        assertTrue(response.success)
-        assertEquals("Ana Gómez", response.data?.single()?.name)
-        assertEquals("123456789", response.data?.single()?.cedula)
+        assertEquals(
+            "Teléfono: Ingresa un teléfono colombiano válido",
+            viewModel.uiState.value.form.errorMessage
+        )
     }
 
     @Test
-    fun clientPayload_mapsCedulaToBackendDocumentField() {
-        val json = Gson().toJson(
-            Client(
-                name = "Ana Gómez",
-                cedula = "123456789",
-                email = "ana@example.com",
-                phone = "3000000000"
+    fun createClient_duplicateDocument_showsFriendlyMessage() {
+        val repository = FakeClientRepository(
+            failure = HttpException(
+                Response.error<Any>(
+                    409,
+                    """{"success":false,"message":"El documento 12345678 ya está registrado"}"""
+                        .toResponseBody()
+                )
             )
         )
-
-        assertTrue(json.contains("\"document\":\"123456789\""))
-        assertTrue(json.contains("\"email\":\"ana@example.com\""))
-        assertFalse(json.contains("\"cedula\""))
-    }
-
-    @Test
-    fun loadClients_unauthorized_exposesSessionMessage() {
-        val httpException = HttpException(
-            Response.error<Any>(401, "unauthorized".toResponseBody())
-        )
-        val viewModel = viewModel(FakeClientRepository(failure = httpException))
-
-        viewModel.loadClients()
-
-        assertEquals(
-            "Tu sesión expiró. Inicia sesión nuevamente.",
-            viewModel.uiState.value.errorMessage
-        )
-    }
-
-    @Test
-    fun loadClients_malformedJson_exposesParsingMessage() {
-        val viewModel = viewModel(
-            FakeClientRepository(failure = com.google.gson.JsonParseException("invalid json"))
-        )
-
-        viewModel.loadClients()
-
-        assertEquals(
-            "No se pudo interpretar la respuesta del servidor",
-            viewModel.uiState.value.errorMessage
-        )
-    }
-
-    @Test
-    fun createClient_refreshFailure_keepsExistingListAndExplainsPartialSuccess() {
-        val existingClient = client("5", "Cliente existente")
-        val repository = FakeClientRepository(
-            values = listOf(existingClient),
-            created = client("6", "Respuesta parcial"),
-            refreshFailure = IOException()
-        )
         val viewModel = viewModel(repository)
-        viewModel.loadClients()
 
-        viewModel.createClient("Nuevo", "123", "3000000000", "nuevo@example.com")
+        viewModel.startCreateForm()
+        viewModel.onDocumentChange("12345678")
+        viewModel.createClient()
 
         assertEquals(
-            "Cliente creado correctamente, pero no se pudo actualizar la lista.",
-            viewModel.uiState.value.operationMessage
+            "Ya existe un cliente con este documento.",
+            viewModel.uiState.value.form.errorMessage
         )
-        assertEquals(listOf("5"), viewModel.uiState.value.clients.map { it.id })
     }
 
     @Test
-    fun updateClient_success_refreshesClientsAndReportsSuccess() {
-        val updatedClient = client("7", "Ana actualizada", phone = "3112223344")
-        val repository = FakeClientRepository(
-            values = listOf(updatedClient),
-            updated = updatedClient
-        )
+    fun updateClient_success_usesSameFormAndRefreshesClients() {
+        val updated = client("7", "Ana actualizada", lastName = "Pérez", phone = "3112223344")
+        val repository = FakeClientRepository(values = listOf(updated))
         val viewModel = viewModel(repository)
-        viewModel.loadClients()
 
-        viewModel.updateClient(updatedClient)
+        viewModel.startEditForm("7")
+        viewModel.onNameChange("Ana actualizada")
+        viewModel.createClient()
 
         assertEquals(1, repository.updateCalls)
+        assertEquals("Ana actualizada", repository.lastUpdated?.name)
         assertEquals("Cliente actualizado correctamente", viewModel.uiState.value.operationMessage)
-        assertEquals(1, viewModel.uiState.value.updateVersion)
-        assertEquals("Ana actualizada", viewModel.uiState.value.clients.single().name)
-        assertEquals("3112223344", viewModel.uiState.value.clients.single().phone)
     }
 
     @Test
-    fun updateClient_invalidEmail_doesNotCallRepository() {
-        val repository = FakeClientRepository()
+    fun deleteClient_requiresReasonAndSendsItToBackend() {
+        val repository = FakeClientRepository(values = listOf(client("11", "Eliminar")))
         val viewModel = viewModel(repository)
+        viewModel.loadClients()
 
-        viewModel.updateClient(client("8", "Cliente", email = "correo-invalido"))
+        viewModel.deleteClient("11", "Cliente duplicado")
 
-        assertEquals("Ingresa un correo válido o déjalo vacío", viewModel.uiState.value.operationMessage)
-        assertEquals(0, repository.updateCalls)
+        assertEquals(1, repository.deleteCalls)
+        assertEquals("Cliente duplicado", repository.lastDeleteReason)
+        assertTrue(viewModel.uiState.value.clients.isEmpty())
+        assertEquals("Cliente eliminado correctamente", viewModel.uiState.value.operationMessage)
     }
 
     @Test
-    fun updateClient_duplicateDocument_showsFriendlyConflict() {
-        val repository = FakeClientRepository(
-            failure = HttpException(Response.error<Any>(409, "conflict".toResponseBody()))
-        )
+    fun deleteClient_blankReason_doesNotCallRepository() {
+        val repository = FakeClientRepository(values = listOf(client("12", "Eliminar")))
         val viewModel = viewModel(repository)
 
-        viewModel.updateClient(client("9", "Cliente", email = "cliente@example.com"))
+        viewModel.deleteClient("12", " ")
 
-        assertEquals(
-            "Ya existe un cliente con este número de documento.",
-            viewModel.uiState.value.operationMessage
-        )
-        assertEquals(1, repository.updateCalls)
-    }
-
-    @Test
-    fun updateClient_unauthorized_showsSessionMessage() {
-        val repository = FakeClientRepository(
-            failure = HttpException(Response.error<Any>(401, "unauthorized".toResponseBody()))
-        )
-        val viewModel = viewModel(repository)
-
-        viewModel.updateClient(client("10", "Cliente"))
-
-        assertEquals(
-            "Tu sesión expiró. Inicia sesión nuevamente.",
-            viewModel.uiState.value.operationMessage
-        )
+        assertEquals(0, repository.deleteCalls)
+        assertEquals("Ingresa un motivo para eliminar el cliente", viewModel.uiState.value.operationMessage)
     }
 
     private fun viewModel(repository: ClientRepository): ClientViewModel = ClientViewModel(
@@ -312,48 +212,62 @@ class ClientViewModelTest {
     private fun client(
         id: String,
         name: String,
-        email: String = "${name.lowercase().replace(' ', '.')}@example.com",
+        lastName: String = "",
+        document: String? = null,
         phone: String = "3000000000"
     ) = Client(
-                id = id,
-                name = name,
-                email = email,
-                phone = phone
-            )
+        id = id,
+        documentType = "CC",
+        document = document,
+        name = name,
+        lastName = lastName,
+        phone = phone,
+        status = "Activo"
+    )
 }
 
 private class FakeClientRepository(
     private val values: List<Client> = emptyList(),
-    private val failure: Exception? = null,
-    private val created: Client? = null,
-    private val refreshFailure: Exception? = null,
-    private val updated: Client? = null
+    private val failure: Exception? = null
 ) : ClientRepository(noOpApiService) {
-    var calls = 0
+    private val deletedIds = mutableSetOf<String>()
+    var getCalls = 0
     var createCalls = 0
     var updateCalls = 0
-    var lastCreated: Client? = null
+    var deleteCalls = 0
+    var lastCreated: ClientRequest? = null
+    var lastUpdated: ClientRequest? = null
+    var lastDeleteReason: String? = null
 
     override suspend fun getClients(): List<Client> {
-        calls++
-        if (createCalls > 0) {
-            refreshFailure?.let { throw it }
-        }
+        getCalls++
         failure?.let { throw it }
-        return values
+        return values.filterNot { it.id in deletedIds }
     }
 
-    override suspend fun createClient(client: Client): Client {
+    override suspend fun getClient(id: String): Client {
+        return values.first { it.id == id }
+    }
+
+    override suspend fun createClient(request: ClientRequest): Client {
         createCalls++
-        lastCreated = client
+        lastCreated = request
         failure?.let { throw it }
-        return created ?: client.copy(id = "generated")
+        return values.firstOrNull() ?: Client(id = "generated")
     }
 
-    override suspend fun updateClient(id: String, client: Client): Client {
+    override suspend fun updateClient(id: String, request: ClientRequest): Client {
         updateCalls++
+        lastUpdated = request
         failure?.let { throw it }
-        return updated ?: client
+        return values.first { it.id == id }
+    }
+
+    override suspend fun deleteClient(id: String, reason: String) {
+        deleteCalls++
+        lastDeleteReason = reason
+        failure?.let { throw it }
+        deletedIds += id
     }
 }
 

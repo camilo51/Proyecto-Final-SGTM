@@ -1,16 +1,57 @@
 package com.example.myapplication.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,8 +61,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,7 +73,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
+import com.example.myapplication.data.model.UserDto
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class AppMenuItem(
     val route: String,
@@ -44,12 +88,43 @@ data class AppMenuItem(
 val appMenuItems = listOf(
     AppMenuItem(AppRoutes.Admin, "Dashboard", Icons.Filled.Home),
     AppMenuItem(AppRoutes.Clients, "Clientes", Icons.Filled.Person, adminOnly = true),
+    AppMenuItem(AppRoutes.Users, "Usuarios", Icons.Filled.Face, adminOnly = true),
+    AppMenuItem(AppRoutes.Employees, "Empleados", Icons.Filled.AccountCircle, adminOnly = true),
     AppMenuItem(AppRoutes.Motorcycles, "Motocicletas", Icons.Filled.Build, adminOnly = true),
     AppMenuItem(AppRoutes.Orders, "Órdenes de trabajo", Icons.AutoMirrored.Filled.List, adminOnly = true),
     AppMenuItem(AppRoutes.Inventory, "Inventario", Icons.Filled.ShoppingCart, adminOnly = true),
-    AppMenuItem(AppRoutes.Employees, "Empleados", Icons.Filled.AccountBox, adminOnly = true),
-    AppMenuItem(AppRoutes.Users, "Usuarios", Icons.Filled.AccountCircle, adminOnly = true)
+    AppMenuItem(AppRoutes.Invoices, "Facturación", Icons.Filled.ReceiptLong, adminOnly = true),
+    AppMenuItem(AppRoutes.Reports, "Reportes", Icons.Filled.DateRange, adminOnly = true),
+    AppMenuItem(AppRoutes.Audit, "Auditoría", Icons.Filled.Info, adminOnly = true)
 )
+
+@Composable
+fun BackNavigationLink(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.size(4.dp))
+        Text(
+            "Volver",
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +133,8 @@ fun AppScaffold(
     navController: NavController,
     isAdmin: Boolean,
     userName: String? = null,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     onLogout: () -> Unit = {},
     appBar: (@Composable (onOpenDrawer: () -> Unit) -> Unit)? = null,
@@ -75,40 +152,30 @@ fun AppScaffold(
                 drawerContentColor = MaterialTheme.colorScheme.onBackground,
                 drawerTonalElevation = 0.dp
             ) {
-                DrawerHeader(userName)
-                Spacer(Modifier.height(12.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                DrawerHeader(
+                    user = currentUser,
+                    fallbackName = userName,
+                    onOpenProfile = onOpenProfile
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Spacer(Modifier.height(12.dp))
 
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     Text(
                         text = "NAVEGACIÓN",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                     )
 
                     appMenuItems
                         .filter { !it.adminOnly || isAdmin }
                         .forEach { item ->
-                            val isSelected = currentRoute?.destination?.route == item.route
                             NavigationDrawerItem(
-                                label = { 
-                                    Text(
-                                        text = item.label,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                    ) 
-                                },
-                                icon = { 
-                                    Icon(
-                                        imageVector = item.icon, 
-                                        contentDescription = item.label,
-                                        modifier = Modifier.size(22.dp)
-                                    ) 
-                                },
-                                selected = isSelected,
+                                label = { Text(item.label) },
+                                icon = { Icon(item.icon, contentDescription = item.label) },
+                                selected = currentRoute?.destination?.route == item.route,
                                 onClick = {
                                     scope.launch { drawerState.close() }
                                     if (currentRoute?.destination?.route != item.route) {
@@ -117,31 +184,27 @@ fun AppScaffold(
                                         }
                                     }
                                 },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 colors = NavigationDrawerItemDefaults.colors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedIconColor = Color.White,
-                                    selectedTextColor = Color.White,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    unselectedContainerColor = Color.Transparent
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 ),
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                             )
                         }
 
                     HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
 
                     NavigationDrawerItem(
-                        label = { Text("Cerrar sesión", fontWeight = FontWeight.Medium) },
+                        label = { Text("Cerrar sesión") },
                         icon = {
                             Icon(
                                 Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Cerrar sesión",
-                                modifier = Modifier.size(22.dp)
+                                contentDescription = "Cerrar sesión"
                             )
                         },
                         selected = false,
@@ -149,16 +212,13 @@ fun AppScaffold(
                             scope.launch { drawerState.close() }
                             onLogout()
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = NavigationDrawerItemDefaults.colors(
                             unselectedIconColor = MaterialTheme.colorScheme.error,
-                            unselectedTextColor = MaterialTheme.colorScheme.error,
-                            unselectedContainerColor = Color.Transparent
+                            unselectedTextColor = MaterialTheme.colorScheme.error
                         ),
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                     )
-                    
-                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
@@ -280,80 +340,136 @@ private fun NotificationButton() {
 }
 
 @Composable
-private fun DrawerHeader(userName: String?) {
+private fun DrawerHeader(
+    user: UserDto?,
+    fallbackName: String?,
+    onOpenProfile: () -> Unit
+) {
+    val displayName = user?.name?.takeIf { it.isNotBlank() } ?: fallbackName ?: "Usuario SGTM"
+    val role = user?.role?.let(::readableRole) ?: "Sesión activa"
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 24.dp)
+            .padding(horizontal = 14.dp, vertical = 14.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onOpenProfile)
+            .padding(horizontal = 10.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Build,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Spacer(Modifier.size(16.dp))
-            Column {
+            SgtmAvatar(
+                user = user ?: UserDto(name = displayName),
+                modifier = Modifier.size(52.dp)
+            )
+            Spacer(Modifier.size(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "SGTM",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                    letterSpacing = 0.5.sp
+                    text = displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Gestión de taller",
+                    text = role,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                user?.email?.takeIf { it.isNotBlank() }?.let { email ->
+                    Text(
+                        text = email,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
-        
-        Spacer(Modifier.height(24.dp))
-        
-        if (!userName.isNullOrBlank()) {
+        Row(
+            modifier = Modifier.padding(top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(Modifier.size(8.dp))
             Text(
-                text = "Sesión iniciada como $userName",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = "SGTM · Gestión de taller",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
+fun SgtmAvatar(user: UserDto, modifier: Modifier = Modifier) {
+    val initial = user.name
+        ?.trim()
+        ?.firstOrNull()
+        ?.uppercaseChar()
+        ?.toString()
+        ?: "?"
+
+    Box(
+        modifier = modifier
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initial,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        if (!user.avatar.isNullOrBlank()) {
+            AsyncImage(
+                model = user.avatar,
+                contentDescription = "Avatar de ${user.name.orEmpty()}",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+private fun readableRole(role: String): String {
+    return when (role.trim().lowercase(Locale.ROOT)) {
+        "admin", "administrador", "1" -> "Administrador"
+        "recepcionista", "2" -> "Recepcionista"
+        "tecnico", "técnico", "3" -> "Técnico"
+        else -> role
+    }
+}
+
+@Composable
 fun PlaceholderScreen(title: String) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             Icons.Filled.Build,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(64.dp)
+            tint = MaterialTheme.colorScheme.primary
         )
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineMedium,
+            fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 16.dp)
         )
         Text(
             text = "Esta sección está en construcción",
-            style = MaterialTheme.typography.bodyLarge,
+            fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
         )

@@ -1,231 +1,660 @@
 package com.example.myapplication.ui.screens.clients
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.ui.theme.AppTheme
+import com.example.myapplication.data.model.Client
+import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.viewmodel.ClientViewModel
-
-data class MockClient(
-    val name: String,
-    val phone: String,
-    val email: String,
-    val motosCount: Int
-)
-
-val mockClients = listOf(
-    MockClient("Andrés Pérez", "3001234567", "andres@example.com", 2),
-    MockClient("Carlos Ruiz", "3109876543", "carlos@example.com", 1),
-    MockClient("Felipe Gómez", "3201112233", "felipe@example.com", 3)
-)
 
 @Composable
 fun ClientsScreen(
-    contentPadding: PaddingValues = PaddingValues(0.dp),
+    contentPadding: PaddingValues,
+    onCreateClient: () -> Unit,
+    onEditClient: (String) -> Unit,
     viewModel: ClientViewModel = viewModel()
 ) {
-    val orange = MaterialTheme.colorScheme.primary
+    val state by viewModel.uiState.collectAsState()
+    var deletingClient by remember { mutableStateOf<Client?>(null) }
 
-    AppTheme(darkTheme = true) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+    LaunchedEffect(Unit) {
+        viewModel.loadClients()
+    }
+
+    LaunchedEffect(state.deleteVersion) {
+        if (state.deleteVersion > 0) {
+            deletingClient = null
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding)
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        ClientsHeader(
+            isSaving = state.isSaving,
+            isRefreshing = state.isRefreshing,
+            onCreateClient = onCreateClient,
+            onRefresh = viewModel::refreshClients
+        )
+
+        ClientSummaryCard(total = state.clients.size)
+
+        OutlinedTextField(
+            value = state.searchQuery,
+            onValueChange = viewModel::onSearchQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Buscar clientes") },
+            placeholder = { Text("Nombre, apellido, documento o teléfono") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (state.searchQuery.isNotEmpty()) {
+                    IconButton(onClick = viewModel::clearSearch) {
+                        Icon(Icons.Filled.Close, contentDescription = "Limpiar búsqueda")
+                    }
+                }
+            },
+            singleLine = true,
+            colors = AppOutlinedTextFieldColors()
+        )
+
+        if (state.errorMessage != null && state.clients.isNotEmpty()) {
+            InlineErrorMessage(
+                message = state.errorMessage.orEmpty(),
+                onRetry = viewModel::loadClients
+            )
+        }
+
+        if (deletingClient == null &&
+            (state.creationVersion > 0 || state.updateVersion > 0 || state.deleteVersion > 0) &&
+            state.operationMessage != null
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // Header
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "MÓDULO ADMINISTRATIVO",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = orange,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = "Clientes",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "Gestión de clientes registrados en el taller.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.6f)
-                    )
-                }
+            SuccessMessage(state.operationMessage.orEmpty())
+        }
 
-                // Main Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { /* logic */ },
-                        modifier = Modifier.weight(1.3f),
-                        colors = ButtonDefaults.buttonColors(containerColor = orange),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                    ) {
-                        Text("+ Nuevo cliente", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                    }
-                    OutlinedButton(
-                        onClick = { /* logic */ },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Actualizar", fontSize = 13.sp, color = Color.White)
-                    }
-                }
-
-                // Stats Cards
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item { ClientStatCard("Registrados", "95") }
-                    item { ClientStatCard("Activos", "80") }
-                    item { ClientStatCard("Nuevos (Mes)", "12") }
-                }
-
-                // Search Bar
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar clientes...", color = Color.White.copy(alpha = 0.4f)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.4f)) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = orange.copy(alpha = 0.5f),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    singleLine = true
+        when {
+            state.isLoading && state.clients.isEmpty() -> LoadingMessage(Modifier)
+            state.errorMessage != null && state.clients.isEmpty() -> ErrorMessage(
+                message = state.errorMessage.orEmpty(),
+                onRetry = viewModel::loadClients
+            )
+            state.clients.isEmpty() -> EmptyMessage(
+                message = "No hay clientes registrados"
+            )
+            state.filteredClients.isEmpty() -> EmptyMessage(
+                message = "No se encontraron clientes con esa búsqueda",
+                actionLabel = "Limpiar búsqueda",
+                onAction = viewModel::clearSearch
+            )
+            else -> state.visibleClients.forEach { client ->
+                ClientCard(
+                    client = client,
+                    onEdit = {
+                        viewModel.clearOperationMessage()
+                        client.id?.let(onEditClient)
+                    },
+                    onDelete = {
+                        viewModel.clearOperationMessage()
+                        deletingClient = client
+                    },
+                    isDeleting = state.deletingClientId == client.id
                 )
+            }
+        }
 
-                // Client Cards List
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    mockClients.forEach { client ->
-                        ClientItemCard(client)
-                    }
+        if (state.totalPages > 1) {
+            ClientPagination(
+                currentPage = state.currentPage,
+                totalPages = state.totalPages,
+                onPageChange = viewModel::onPageChange
+            )
+        }
+    }
+
+    deletingClient?.let { client ->
+        DeleteClientDialog(
+            client = client,
+            isDeleting = state.isDeleting,
+            errorMessage = state.operationMessage,
+            onDismissRequest = {
+                if (!state.isDeleting) {
+                    deletingClient = null
+                    viewModel.clearOperationMessage()
                 }
+            },
+            onConfirm = { reason -> client.id?.let { viewModel.deleteClient(it, reason) } }
+        )
+    }
+}
 
-                Spacer(modifier = Modifier.height(40.dp))
+@Composable
+private fun ClientsHeader(
+    isSaving: Boolean,
+    isRefreshing: Boolean,
+    onCreateClient: () -> Unit,
+    onRefresh: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(
+            text = "GESTIÓN DEL TALLER",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Clientes",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Consulta los contactos registrados para la atención del taller.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Button(
+                onClick = onCreateClient,
+                modifier = Modifier.weight(1.25f),
+                enabled = !isSaving
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.size(6.dp))
+                Text("Nuevo cliente")
+            }
+            OutlinedButton(
+                onClick = onRefresh,
+                modifier = Modifier.weight(1f),
+                enabled = !isRefreshing && !isSaving
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.size(6.dp))
+                Text(if (isRefreshing) "Actualizando…" else "Actualizar")
             }
         }
     }
 }
 
 @Composable
-private fun ClientStatCard(label: String, value: String) {
+private fun ClientSummaryCard(total: Int) {
     Card(
-        modifier = Modifier.size(width = 110.dp, height = 70.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-        shape = RoundedCornerShape(12.dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Surface(
+                modifier = Modifier.size(36.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Column {
+                Text(
+                    text = "Registrados",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = total.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ClientItemCard(client: MockClient) {
-    val orange = MaterialTheme.colorScheme.primary
+private fun ClientPagination(
+    currentPage: Int,
+    totalPages: Int,
+    onPageChange: (Int) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { onPageChange(currentPage - 1) },
+                enabled = currentPage > 1
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Página anterior"
+                )
+            }
+            Text(
+                text = "Página $currentPage de $totalPages",
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            IconButton(
+                onClick = { onPageChange(currentPage + 1) },
+                enabled = currentPage < totalPages
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Página siguiente"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClientCard(
+    client: Client,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    isDeleting: Boolean
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
                     Text(
-                        text = client.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "${client.motosCount} Motocicletas registradas",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = orange,
-                        fontWeight = FontWeight.Medium
+                        text = "CLIENTE",
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White.copy(alpha = 0.3f))
+                Text(
+                    text = clientDisplayName(client),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                IconButton(
+                    onClick = onEdit,
+                    enabled = !client.id.isNullOrBlank() && !isDeleting
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = "Editar cliente"
+                    )
+                }
+                IconButton(
+                    onClick = onDelete,
+                    enabled = !client.id.isNullOrBlank() && !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Eliminar cliente"
+                        )
+                    }
+                }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.4f))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(client.phone, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White.copy(alpha = 0.4f))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(client.email, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                }
+            client.id?.takeIf(String::isNotBlank)?.let {
+                Text(
+                    text = "ID $it",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+            client.document?.takeIf(String::isNotBlank)?.let {
+                ClientInfoRow(Icons.Filled.Person, "Documento", it)
+            }
+            ClientInfoRow(Icons.Filled.Phone, "Teléfono", client.phone.orEmpty())
+        }
+    }
+}
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+@Composable
+private fun DeleteClientDialog(
+    client: Client,
+    isDeleting: Boolean,
+    errorMessage: String?,
+    onDismissRequest: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var reason by rememberSaveable(client.id) { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = { if (!isDeleting) onDismissRequest() },
+        title = { Text("Eliminar cliente") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("¿Deseas eliminar a ${clientDisplayName(client)}? El backend requiere un motivo y realizará un borrado lógico.")
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Motivo de eliminación") },
+                    minLines = 2,
+                    enabled = !isDeleting,
+                    colors = AppOutlinedTextFieldColors()
+                )
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(errorMessage, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(reason) },
+                enabled = !isDeleting && reason.isNotBlank()
             ) {
-                TextButton(onClick = { /* logic */ }) {
-                    Text("Ver Historial", color = orange, fontWeight = FontWeight.Bold)
+                if (isDeleting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Eliminar")
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = { /* logic */ }) {
-                    Text("Editar", color = orange, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest, enabled = !isDeleting) { Text("Cancelar") }
+        }
+    )
+}
+
+private fun clientDisplayName(client: Client): String {
+    client.name.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return it }
+    client.document.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return "Cliente $it" }
+    client.phone.orEmpty().trim().takeIf(String::isNotEmpty)?.let { return it }
+    return "Cliente sin identificar"
+}
+
+@Composable
+private fun SuccessMessage(message: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+private fun ClientInfoRow(
+    icon: ImageVector,
+    label: String,
+    value: String
+) {
+    if (value.isBlank()) return
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(17.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoadingMessage(modifier: Modifier) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CircularProgressIndicator()
+            Text(
+                text = "Cargando clientes…",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorMessage(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(32.dp)
+                )
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Button(onClick = onRetry) {
+                    Text("Reintentar")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InlineErrorMessage(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.errorContainer
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Text(
+                text = message,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.bodySmall
+            )
+            OutlinedButton(onClick = onRetry) {
+                Text("Reintentar")
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyMessage(
+    message: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp)
+                )
+                Text(message, style = MaterialTheme.typography.bodyLarge)
+                if (actionLabel != null && onAction != null) {
+                    OutlinedButton(onClick = onAction) {
+                        Text(actionLabel)
+                    }
                 }
             }
         }

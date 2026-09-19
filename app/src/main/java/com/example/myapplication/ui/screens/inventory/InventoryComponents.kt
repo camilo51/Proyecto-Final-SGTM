@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.data.model.inventory.InventoryDto
+import com.example.myapplication.ui.screens.BackNavigationLink
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -48,6 +49,14 @@ internal fun String?.asReadableDate(): String? {
         "dd 'de' MMMM 'de' yyyy 'a las' HH:mm",
         Locale("es", "CO")
     ).format(date)
+}
+
+@Composable
+internal fun InventoryBackLink(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BackNavigationLink(onClick = onClick, modifier = modifier)
 }
 
 @Composable

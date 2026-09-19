@@ -25,6 +25,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.myapplication.data.model.UserDto
+import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.viewmodel.DashboardViewModel
 import java.util.Calendar
 import java.util.Locale
@@ -36,6 +38,8 @@ fun AdminScreen(
     navController: NavController,
     isAdmin: Boolean,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -45,6 +49,8 @@ fun AdminScreen(
         navController = navController,
         isAdmin = isAdmin,
         userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
         onLogout = onLogout,
         appBar = { onOpenDrawer -> TopSearchBar(onOpenDrawer) }
     ) { padding ->
@@ -64,11 +70,11 @@ fun AdminScreen(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(28.dp)
                 ) {
-                    DashboardHeader(userName)
+                    DashboardHeader(userName, navController)
 
                     MetricsSection(uiState)
 
-                    FinancialSummarySection(uiState)
+                    FinancialSummarySection(uiState.totalSales)
                 }
             }
         }
@@ -117,7 +123,7 @@ private fun TopSearchBar(onOpenDrawer: () -> Unit) {
 }
 
 @Composable
-private fun DashboardHeader(userName: String?) {
+private fun DashboardHeader(userName: String?, navController: NavController) {
     val calendar = Calendar.getInstance()
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     
@@ -156,10 +162,11 @@ private fun DashboardHeader(userName: String?) {
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
+
         }
         
         Button(
-            onClick = { /* Nueva orden */ },
+            onClick = { navController.navigate(AppRoutes.CreateOrder) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(12.dp),
@@ -275,8 +282,7 @@ private fun DashboardMetricCard(
 }
 
 @Composable
-private fun FinancialSummarySection(state: com.example.myapplication.ui.viewmodel.DashboardUiState) {
-    val totalSales = state.totalSales
+private fun FinancialSummarySection(totalSales: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -325,62 +331,6 @@ private fun FinancialSummarySection(state: com.example.myapplication.ui.viewmode
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Periodic Summary
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    PeriodicMetricItem(
-                        label = "Día",
-                        value = state.salesDaily,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PeriodicMetricItem(
-                        label = "Quincenal",
-                        value = state.salesBiweekly,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    PeriodicMetricItem(
-                        label = "Mensual",
-                        value = state.salesMonthly,
-                        modifier = Modifier.weight(1f)
-                    )
-                    PeriodicMetricItem(
-                        label = "Anual",
-                        value = state.salesAnnual,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
         }
-    }
-}
-
-@Composable
-private fun PeriodicMetricItem(
-    label: String,
-    value: Double,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "$" + String.format(Locale.getDefault(), "%,.2f", value),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }

@@ -28,19 +28,22 @@ import com.example.myapplication.data.api.RetrofitClient
 import com.example.myapplication.ui.screens.AdminScreen
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.screens.LoginScreen
+import com.example.myapplication.ui.screens.ProfileScreen
 import com.example.myapplication.ui.screens.inventory.CreateInventoryScreen
 import com.example.myapplication.ui.screens.inventory.EditInventoryScreen
 import com.example.myapplication.ui.screens.inventory.InventoryDetailScreen
 import com.example.myapplication.ui.screens.inventory.InventoryListScreen
 import com.example.myapplication.ui.screens.inventory.InventoryMovementsScreen
+import com.example.myapplication.ui.screens.invoices.CreateInvoiceScreen
+import com.example.myapplication.ui.screens.invoices.InvoicesScreen
+import com.example.myapplication.ui.screens.invoices.InvoiceDetailScreen
 import com.example.myapplication.ui.screens.PlaceholderScreen
+import com.example.myapplication.ui.screens.clients.ClientFormScreen
 import com.example.myapplication.ui.screens.clients.ClientsScreen
 import com.example.myapplication.ui.screens.employees.EmployeeFormScreen
 import com.example.myapplication.ui.screens.employees.EmployeesScreen
 import com.example.myapplication.ui.screens.users.UsersFormScreen
 import com.example.myapplication.ui.screens.users.UsersScreen
-import com.example.myapplication.ui.viewmodel.EmployeeViewModel
-import com.example.myapplication.ui.viewmodel.UserViewModel
 import com.example.myapplication.ui.screens.motorcycles.CreateMotorcycleScreen
 import com.example.myapplication.ui.screens.motorcycles.EditMotorcycleScreen
 import com.example.myapplication.ui.screens.motorcycles.MotorcycleDetailScreen
@@ -49,12 +52,18 @@ import com.example.myapplication.ui.screens.orders.CreateOrderScreen
 import com.example.myapplication.ui.screens.orders.EditOrderScreen
 import com.example.myapplication.ui.screens.orders.OrderDetailScreen
 import com.example.myapplication.ui.screens.orders.OrdersListScreen
+import com.example.myapplication.ui.screens.audit.AuditScreen
+import com.example.myapplication.ui.screens.reports.ReportsScreen
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
 import com.example.myapplication.ui.viewmodel.ClientViewModel
+import com.example.myapplication.ui.viewmodel.EmployeeViewModel
 import com.example.myapplication.ui.viewmodel.LoginViewModel
 import com.example.myapplication.ui.viewmodel.MotorcycleViewModel
+import com.example.myapplication.ui.viewmodel.InvoiceViewModel
 import com.example.myapplication.ui.viewmodel.OrderViewModel
+import com.example.myapplication.ui.viewmodel.ProfileViewModel
+import com.example.myapplication.ui.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -79,10 +88,12 @@ fun MainApp() {
     val loginViewModel: LoginViewModel = viewModel()
     val clientViewModel: ClientViewModel = viewModel()
     val motorcycleViewModel: MotorcycleViewModel = viewModel()
+    val invoiceViewModel: InvoiceViewModel = viewModel()
     val orderViewModel: OrderViewModel = viewModel()
-    val uiState by loginViewModel.uiState.collectAsState()
-    val employeeViewModel: EmployeeViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
     val userViewModel: UserViewModel = viewModel()
+    val employeeViewModel: EmployeeViewModel = viewModel()
+    val uiState by loginViewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.accessToken) {
         RetrofitClient.setAuthorizationToken(uiState.accessToken)
@@ -94,6 +105,12 @@ fun MainApp() {
                 popUpTo(0) { inclusive = true }
                 launchSingleTop = true
             }
+        }
+    }
+
+    val onOpenProfile: () -> Unit = {
+        navController.navigate(AppRoutes.Profile) {
+            launchSingleTop = true
         }
     }
 
@@ -117,60 +134,147 @@ fun MainApp() {
         composable("admin") {
             AdminScreen(
                 userName = uiState.user?.name,
+                currentUser = uiState.user,
+                onOpenProfile = onOpenProfile,
                 navController = navController,
                 isAdmin = uiState.isAdmin,
                 onLogout = onLogout
             )
         }
-        
-        // Rutas Administrativas
-        composable(AppRoutes.Employees) {
+        composable("inventory") {
+            AdminOnlyRoute(uiState.isAdmin, navController) {
+                InventoryListScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile
+                )
+            }
+        }
+        composable("inventory/create") {
+            AdminOnlyRoute(uiState.isAdmin, navController) {
+                CreateInventoryScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile
+                )
+            }
+        }
+        composable("inventory/detail/{id}") { entry ->
+            entry.arguments?.getString("id")?.toLongOrNull()?.let { id ->
+                AdminOnlyRoute(uiState.isAdmin, navController) {
+                    InventoryDetailScreen(
+                        id = id,
+                        navController = navController,
+                        userName = uiState.user?.name,
+                        onLogout = onLogout,
+                        currentUser = uiState.user,
+                        onOpenProfile = onOpenProfile
+                    )
+                }
+            }
+        }
+        composable("inventory/edit/{id}") { entry ->
+            entry.arguments?.getString("id")?.toLongOrNull()?.let { id ->
+                AdminOnlyRoute(uiState.isAdmin, navController) {
+                    EditInventoryScreen(
+                        id = id,
+                        navController = navController,
+                        userName = uiState.user?.name,
+                        onLogout = onLogout,
+                        currentUser = uiState.user,
+                        onOpenProfile = onOpenProfile
+                    )
+                }
+            }
+        }
+        composable("inventory/movements/{id}/{action}") { entry ->
+            val id = entry.arguments?.getString("id")?.toLongOrNull()
+            val action = entry.arguments?.getString("action") ?: "history"
+            if (id != null) {
+                AdminOnlyRoute(uiState.isAdmin, navController) {
+                    InventoryMovementsScreen(
+                        id = id,
+                        initialAction = action,
+                        navController = navController,
+                        userName = uiState.user?.name,
+                        onLogout = onLogout,
+                        currentUser = uiState.user,
+                        onOpenProfile = onOpenProfile
+                    )
+                }
+            }
+        }
+        composable("home") {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Bienvenido Usuario Estándar", 
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = "Rol detectado: ${uiState.user?.role ?: "No definido"}",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+        composable(AppRoutes.Profile) {
             if (uiState.isAdmin) {
                 AppScaffold(
-                    title = "Empleados",
+                    title = "Mi Perfil",
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = onLogout
                 ) { padding ->
-                    EmployeesScreen(
+                    ProfileScreen(
                         contentPadding = padding,
-                        navController = navController,
-                        viewModel = employeeViewModel
+                        sessionUser = uiState.user,
+                        onUserUpdated = loginViewModel::updateUser,
+                        onBack = navController::popBackStack,
+                        viewModel = profileViewModel
                     )
                 }
             } else {
-                PlaceholderScreen("No tienes permisos para acceder a empleados")
+                PlaceholderScreen("No tienes permisos para acceder al perfil")
             }
         }
-        composable(AppRoutes.CreateEmployee) {
+        composable(AppRoutes.Clients) {
             if (uiState.isAdmin) {
-                EmployeeFormScreen(
+                AppScaffold(
+                    title = "Clientes",
                     navController = navController,
+                    isAdmin = true,
                     userName = uiState.user?.name,
-                    onLogout = onLogout,
-                    viewModel = employeeViewModel
-                )
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = {
+                        loginViewModel.logout {
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                ) { padding ->
+                    ClientsScreen(
+                        contentPadding = padding,
+                        onCreateClient = { navController.navigate(AppRoutes.CreateClient) },
+                        onEditClient = { id -> navController.navigate(AppRoutes.editClient(id)) },
+                        viewModel = clientViewModel
+                    )
+                }
             } else {
-                PlaceholderScreen("No tienes permisos para crear empleados")
-            }
-        }
-        composable(
-            route = AppRoutes.EditEmployee,
-            arguments = listOf(navArgument("employeeId") { type = NavType.StringType })
-        ) { entry ->
-            val id = entry.arguments?.getString("employeeId")
-            val employee = employeeViewModel.uiState.collectAsState().value.employees.find { it.id == id }
-            if (uiState.isAdmin) {
-                EmployeeFormScreen(
-                    navController = navController,
-                    userName = uiState.user?.name,
-                    onLogout = onLogout,
-                    employee = employee,
-                    viewModel = employeeViewModel
-                )
-            } else {
-                PlaceholderScreen("No tienes permisos para editar empleados")
+                PlaceholderScreen("No tienes permisos para acceder a clientes")
             }
         }
         composable(AppRoutes.Users) {
@@ -180,11 +284,13 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = onLogout
                 ) { padding ->
                     UsersScreen(
-                        contentPadding = padding,
                         navController = navController,
+                        contentPadding = padding,
                         viewModel = userViewModel
                     )
                 }
@@ -208,9 +314,9 @@ fun MainApp() {
             route = AppRoutes.EditUser,
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { entry ->
-            val id = entry.arguments?.getString("userId")
-            val user = userViewModel.uiState.collectAsState().value.users.find { it.id == id }
+            val userId = entry.arguments?.getString("userId") ?: return@composable
             if (uiState.isAdmin) {
+                val user = userViewModel.uiState.collectAsState().value.users.find { it.id == userId }
                 UsersFormScreen(
                     navController = navController,
                     userName = uiState.user?.name,
@@ -222,95 +328,89 @@ fun MainApp() {
                 PlaceholderScreen("No tienes permisos para editar usuarios")
             }
         }
-        composable(AppRoutes.Reports) { PlaceholderScreen("Reportes") }
-        composable(AppRoutes.Billing) { PlaceholderScreen("Facturación") }
-        composable(AppRoutes.CRM) { PlaceholderScreen("CRM") }
-        composable(AppRoutes.Audit) { PlaceholderScreen("Auditoría") }
-        composable(AppRoutes.Backups) { PlaceholderScreen("Respaldos") }
-
-        composable("inventory") {
+        composable(AppRoutes.Employees) {
             if (uiState.isAdmin) {
                 AppScaffold(
-                    title = "Inventario",
+                    title = "Empleados",
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = onLogout
                 ) { padding ->
-                    InventoryListScreen(padding, navController, uiState.user?.name, onLogout)
-                }
-            } else {
-                PlaceholderScreen("No tienes permisos para acceder a inventario")
-            }
-        }
-        composable("inventory/create") {
-            AdminOnlyRoute(uiState.isAdmin, navController) {
-                CreateInventoryScreen(navController, uiState.user?.name, onLogout)
-            }
-        }
-        composable("inventory/detail/{id}") { entry ->
-            entry.arguments?.getString("id")?.toLongOrNull()?.let { id ->
-                AdminOnlyRoute(uiState.isAdmin, navController) {
-                    InventoryDetailScreen(id, navController, uiState.user?.name, onLogout)
-                }
-            }
-        }
-        composable("inventory/edit/{id}") { entry ->
-            entry.arguments?.getString("id")?.toLongOrNull()?.let { id ->
-                AdminOnlyRoute(uiState.isAdmin, navController) {
-                    EditInventoryScreen(id, navController, uiState.user?.name, onLogout)
-                }
-            }
-        }
-        composable("inventory/movements/{id}/{action}") { entry ->
-            val id = entry.arguments?.getString("id")?.toLongOrNull()
-            val action = entry.arguments?.getString("action") ?: "history"
-            if (id != null) {
-                AdminOnlyRoute(uiState.isAdmin, navController) {
-                    InventoryMovementsScreen(id, action, navController, uiState.user?.name, onLogout)
-                }
-            }
-        }
-        composable("home") {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Bienvenido Usuario Estándar", 
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    text = "Rol detectado: ${uiState.user?.role ?: "No definido"}",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-        }
-        composable(AppRoutes.Clients) {
-            if (uiState.isAdmin) {
-                AppScaffold(
-                    title = "Clientes",
-                    navController = navController,
-                    isAdmin = true,
-                    userName = uiState.user?.name,
-                    onLogout = {
-                        loginViewModel.logout {
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-                ) { padding ->
-                    ClientsScreen(
+                    EmployeesScreen(
+                        navController = navController,
                         contentPadding = padding,
-                        viewModel = clientViewModel
+                        viewModel = employeeViewModel
                     )
                 }
             } else {
-                PlaceholderScreen("No tienes permisos para acceder a clientes")
+                PlaceholderScreen("No tienes permisos para acceder a empleados")
+            }
+        }
+        composable(AppRoutes.CreateEmployee) {
+            if (uiState.isAdmin) {
+                EmployeeFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    viewModel = employeeViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear empleados")
+            }
+        }
+        composable(
+            route = AppRoutes.EditEmployee,
+            arguments = listOf(navArgument("employeeId") { type = NavType.StringType })
+        ) { entry ->
+            val employeeId = entry.arguments?.getString("employeeId") ?: return@composable
+            if (uiState.isAdmin) {
+                val employee = employeeViewModel.uiState.collectAsState().value.employees.find { it.id == employeeId }
+                EmployeeFormScreen(
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    employee = employee,
+                    viewModel = employeeViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar empleados")
+            }
+        }
+        composable(AppRoutes.CreateClient) {
+            if (uiState.isAdmin) {
+                ClientFormScreen(
+                    clientId = null,
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    viewModel = clientViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para crear clientes")
+            }
+        }
+        composable(
+            route = AppRoutes.EditClient,
+            arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+        ) { entry ->
+            val clientId = entry.arguments?.getString("clientId") ?: return@composable
+            if (uiState.isAdmin) {
+                ClientFormScreen(
+                    clientId = clientId,
+                    navController = navController,
+                    userName = uiState.user?.name,
+                    onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    viewModel = clientViewModel
+                )
+            } else {
+                PlaceholderScreen("No tienes permisos para editar clientes")
             }
         }
         composable(AppRoutes.Orders) {
@@ -320,6 +420,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {
@@ -341,6 +443,109 @@ fun MainApp() {
                 PlaceholderScreen("No tienes permisos para acceder a órdenes")
             }
         }
+        composable(AppRoutes.Reports) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Reportes",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    ReportsScreen(
+                        contentPadding = padding,
+                        onOpenInventory = { id -> navController.navigate("inventory/detail/$id") }
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a reportes")
+            }
+        }
+        composable(AppRoutes.Audit) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Auditoría",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    AuditScreen(contentPadding = padding)
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para consultar la auditoría")
+            }
+        }
+        composable(AppRoutes.Invoices) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Facturación",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    InvoicesScreen(
+                        contentPadding = padding,
+                        onOpenInvoice = { id -> navController.navigate(AppRoutes.invoiceDetail(id)) },
+                        onCreateInvoice = { navController.navigate(AppRoutes.CreateInvoice) },
+                        viewModel = invoiceViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a facturación")
+            }
+        }
+        composable(AppRoutes.CreateInvoice) {
+            if (uiState.isAdmin) {
+                AppScaffold(
+                    title = "Nueva factura",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    CreateInvoiceScreen(
+                        contentPadding = padding,
+                        onBack = navController::popBackStack,
+                        viewModel = invoiceViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para crear facturas")
+            }
+        }
+        composable(AppRoutes.InvoiceDetail) { entry ->
+            val invoiceId = entry.arguments?.getString("invoiceId")
+            if (uiState.isAdmin && invoiceId != null) {
+                AppScaffold(
+                    title = "Factura",
+                    navController = navController,
+                    isAdmin = true,
+                    userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
+                    onLogout = onLogout
+                ) { padding ->
+                    InvoiceDetailScreen(
+                        contentPadding = padding,
+                        invoiceId = invoiceId,
+                        onBack = navController::popBackStack,
+                        viewModel = invoiceViewModel
+                    )
+                }
+            } else {
+                PlaceholderScreen("No tienes permisos para acceder a esta factura")
+            }
+        }
         composable(AppRoutes.Motorcycles) {
             if (uiState.isAdmin) {
                 AppScaffold(
@@ -348,6 +553,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = onLogout
                 ) { padding ->
                     MotorcyclesScreen(
@@ -368,6 +575,8 @@ fun MainApp() {
                     navController = navController,
                     userName = uiState.user?.name,
                     onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onCreated = { id ->
                         navController.navigate(AppRoutes.motorcycleDetail(id)) {
                             popUpTo(AppRoutes.CreateMotorcycle) { inclusive = true }
@@ -390,6 +599,8 @@ fun MainApp() {
                     navController = navController,
                     userName = uiState.user?.name,
                     onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onEdit = { id -> navController.navigate(AppRoutes.editMotorcycle(id)) },
                     viewModel = motorcycleViewModel
                 )
@@ -408,6 +619,8 @@ fun MainApp() {
                     navController = navController,
                     userName = uiState.user?.name,
                     onLogout = onLogout,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     viewModel = motorcycleViewModel
                 )
             } else {
@@ -421,6 +634,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {
@@ -456,6 +671,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {
@@ -488,6 +705,8 @@ fun MainApp() {
                     navController = navController,
                     isAdmin = true,
                     userName = uiState.user?.name,
+                    currentUser = uiState.user,
+                    onOpenProfile = onOpenProfile,
                     onLogout = {
                         loginViewModel.logout {
                             navController.navigate("login") {

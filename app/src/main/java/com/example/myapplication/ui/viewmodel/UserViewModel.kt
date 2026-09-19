@@ -90,6 +90,7 @@ class UserViewModel : ViewModel() {
     fun createUser(
         name: String,
         email: String,
+        role: String? = null,
         avatar: String? = null
     ) {
         val normalizedEmail = email.trim()
@@ -106,6 +107,7 @@ class UserViewModel : ViewModel() {
             id = newId.toString(),
             name = name.trim(),
             email = normalizedEmail,
+            role = role?.trim()?.takeIf(String::isNotBlank),
             avatar = avatar?.trim()?.takeIf(String::isNotBlank)
         )
         localUsers.add(newUser)
@@ -143,6 +145,7 @@ class UserViewModel : ViewModel() {
             localUsers[index] = user.copy(
                 name = user.name.trim(),
                 email = normalizedEmail,
+                role = user.role?.trim()?.takeIf(String::isNotBlank),
                 avatar = user.avatar?.trim()?.takeIf(String::isNotBlank)
             )
         }

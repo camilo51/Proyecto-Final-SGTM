@@ -2,258 +2,250 @@ package com.example.myapplication.ui.screens.inventory
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.myapplication.ui.theme.AppTheme
+import com.example.myapplication.data.model.UserDto
+import com.example.myapplication.data.model.inventory.InventorySort
+import com.example.myapplication.ui.screens.AppScaffold
+import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
+import com.example.myapplication.ui.viewmodel.inventory.InventoryListUiState
 import com.example.myapplication.ui.viewmodel.inventory.InventoryListViewModel
-
-data class MockInventoryItem(
-    val name: String,
-    val brand: String,
-    val quantity: Int,
-    val price: String,
-    val status: String
-)
-
-val mockInventory = listOf(
-    MockInventoryItem("Batería 12V 7A", "Bosch", 15, "$45.00", "Disponible"),
-    MockInventoryItem("Kit Arrastre 520", "DID", 3, "$72.00", "Stock bajo"),
-    MockInventoryItem("Pastillas Freno (Del)", "Nissin", 20, "$28.00", "Disponible")
-)
+import kotlinx.coroutines.delay
 
 @Composable
 fun InventoryListScreen(
-    contentPadding: PaddingValues = PaddingValues(0.dp),
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: InventoryListViewModel = viewModel()
 ) {
-    val orange = MaterialTheme.colorScheme.primary
+    val state by viewModel.uiState.collectAsState()
 
-    AppTheme(darkTheme = true) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+    LaunchedEffect(state.query.search) {
+        delay(350)
+        viewModel.search()
+    }
+
+    AppScaffold(
+        title = "Inventario",
+        navController = navController,
+        isAdmin = true,
+        userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
+        onLogout = onLogout
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // Header
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "MÓDULO ADMINISTRATIVO",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = orange,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = "Inventario",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "Gestión administrativa de existencias y repuestos.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.6f)
-                    )
-                }
-
-                // Main Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { navController.navigate("inventory/create") },
-                        modifier = Modifier.weight(1.3f),
-                        colors = ButtonDefaults.buttonColors(containerColor = orange),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                    ) {
-                        Text("+ Nuevo repuesto", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                    }
-                    OutlinedButton(
-                        onClick = { /* Refresh */ },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
-                        contentPadding = PaddingValues(vertical = 12.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Actualizar", fontSize = 13.sp, color = Color.White)
-                    }
-                }
-
-                // Stats Cards
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item { InventoryStatCard("Items", "150") }
-                    item { InventoryStatCard("Bajo stock", "8") }
-                    item { InventoryStatCard("Agotados", "2") }
-                }
-
-                // Search Bar
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar por nombre o código...", color = Color.White.copy(alpha = 0.4f)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.4f)) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.05f),
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = orange.copy(alpha = 0.5f),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
-                    ),
-                    singleLine = true
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    "Módulo administrativo",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
+                Text("Inventario", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("Gestión administrativa de existencias", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(4.dp))
+                InventoryListActions(
+                    onCreate = { navController.navigate("inventory/create") },
+                    onRefresh = viewModel::refresh
+                )
+            }
 
-                // Inventory Cards List
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    mockInventory.forEach { item ->
-                        InventoryItemCard(item) {
-                            navController.navigate("inventory/detail/1")
-                        }
+            OutlinedTextField(
+                value = state.query.search,
+                onValueChange = viewModel::onSearchChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Buscar por nombre o código") },
+                singleLine = true,
+                colors = AppOutlinedTextFieldColors()
+            )
+            InventoryFilters(state, viewModel)
+            InventoryAlertsSummary(
+                lowStock = state.alerts.lowStockCount,
+                outOfStock = state.alerts.outOfStockCount
+            )
+
+            when {
+                state.isLoading && state.items.isEmpty() -> CircularProgressIndicator()
+                state.errorMessage != null && state.items.isEmpty() -> InventoryMessage(
+                    title = "No fue posible cargar el inventario",
+                    detail = state.errorMessage ?: "",
+                    actionLabel = "Reintentar",
+                    onAction = viewModel::refresh
+                )
+                state.items.isEmpty() -> InventoryMessage(
+                    title = "No hay repuestos",
+                    detail = "Ajusta los filtros o registra el primer repuesto.",
+                    actionLabel = "Crear repuesto",
+                    onAction = { navController.navigate("inventory/create") }
+                )
+                else -> state.items.forEach { item ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate("inventory/detail/${item.id}") },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(18.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(Modifier.padding(18.dp)) { InventorySummary(item) }
                     }
                 }
+            }
+            state.errorMessage?.takeIf { state.items.isNotEmpty() }?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+            InventoryPagination(
+                page = state.pagination.page,
+                totalPages = state.pagination.totalPages,
+                onPrevious = { viewModel.goToPage(state.pagination.page - 1) },
+                onNext = { viewModel.goToPage(state.pagination.page + 1) }
+            )
+            Spacer(Modifier.height(20.dp))
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(40.dp))
+@Composable
+private fun InventoryFilters(state: InventoryListUiState, viewModel: InventoryListViewModel) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        DropdownFilter("Categoría", state.query.category, state.categories, viewModel::setCategory)
+        DropdownFilter("Marca", state.query.brand, state.brands, viewModel::setBrand)
+        DropdownFilter("Estado", state.query.status, listOf("Disponible", "Stock bajo", "Agotado"), viewModel::setStatus)
+        DropdownFilter(
+            "Ordenar", state.query.sort.label, InventorySort.entries.map { it.label },
+            onSelected = { label -> InventorySort.entries.firstOrNull { it.label == label }?.let(viewModel::setSort) },
+            allowClear = false
+        )
+    }
+}
+
+@Composable
+private fun DropdownFilter(
+    label: String,
+    selected: String?,
+    options: List<String>,
+    onSelected: (String?) -> Unit,
+    allowClear: Boolean = true
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        FilterChip(
+            selected = selected != null,
+            onClick = { expanded = true },
+            label = { Text("$label: ${selected ?: "Todos"}") }
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (allowClear) {
+                DropdownMenuItem(text = { Text("Todos") }, onClick = {
+                    onSelected(null)
+                    expanded = false
+                })
+            }
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(option) }, onClick = {
+                    onSelected(option)
+                    expanded = false
+                })
             }
         }
     }
 }
 
 @Composable
-private fun InventoryStatCard(label: String, value: String) {
-    Card(
-        modifier = Modifier.size(width = 110.dp, height = 70.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-        shape = RoundedCornerShape(12.dp)
+private fun InventoryAlertsSummary(lowStock: Int, outOfStock: Int) {
+    Text("Alertas: $lowStock con stock bajo · $outOfStock agotados", color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun InventoryListActions(onCreate: () -> Unit, onRefresh: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+        Button(
+            onClick = onCreate,
+            modifier = Modifier.weight(1.25f)
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Nuevo repuesto")
+        }
+        OutlinedButton(
+            onClick = onRefresh,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Actualizar")
         }
     }
 }
 
 @Composable
-private fun InventoryItemCard(item: MockInventoryItem, onClick: () -> Unit) {
-    val orange = MaterialTheme.colorScheme.primary
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "Marca: ${item.brand}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
-                }
-                
-                // Stock Badge
-                val badgeColor = if (item.quantity < 5) Color(0xFFF87171) else Color(0xFF4ADE80)
-                Surface(
-                    color = badgeColor.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.2f))
-                ) {
-                    Text(
-                        text = "${item.quantity} disp.",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        color = badgeColor,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Precio", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.4f))
-                    Text(item.price, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = orange)
-                }
-                
-                Row {
-                    Text(
-                        text = "Ver",
-                        modifier = Modifier
-                            .clickable { /* logic */ }
-                            .padding(8.dp),
-                        color = orange,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Stock",
-                        modifier = Modifier
-                            .clickable { /* logic */ }
-                            .padding(8.dp),
-                        color = orange,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                }
-            }
+private fun InventoryPagination(page: Int, totalPages: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
+    if (totalPages > 1) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            OutlinedButton(onClick = onPrevious, enabled = page > 1) { Text("Anterior") }
+            Spacer(Modifier.width(12.dp))
+            Text("Página $page de $totalPages", modifier = Modifier.padding(top = 12.dp))
+            Spacer(Modifier.width(12.dp))
+            OutlinedButton(onClick = onNext, enabled = page < totalPages) { Text("Siguiente") }
         }
     }
 }

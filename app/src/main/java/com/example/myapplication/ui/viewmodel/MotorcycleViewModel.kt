@@ -37,6 +37,7 @@ data class MotorcycleUiState(
     val filteredMotorcycles: List<Motorcycle> = emptyList(),
     val clients: List<Client> = emptyList(),
     val selectedMotorcycle: Motorcycle? = null,
+    val selectedClientId: String? = null,
     val searchQuery: String = "",
     val clientSearchQuery: String = "",
     val selectedStatus: String? = null,
@@ -61,7 +62,7 @@ data class MotorcycleUiState(
             val query = clientSearchQuery.trim().lowercase(Locale.ROOT)
             if (query.isBlank()) return emptyList()
             return clients.filter { client ->
-                listOf(client.name, client.cedula.orEmpty(), client.phone)
+                listOf(client.name.orEmpty(), client.document.orEmpty(), client.phone.orEmpty())
                     .any { value -> value.lowercase(Locale.ROOT).contains(query) }
             }.take(CLIENT_RESULTS_LIMIT)
         }
@@ -146,11 +147,32 @@ class MotorcycleViewModel(
     }
 
     fun onClientSearchQueryChange(query: String) {
-        _uiState.update { it.copy(clientSearchQuery = query) }
+        _uiState.update {
+            it.copy(
+                clientSearchQuery = query,
+                selectedClientId = null
+            )
+        }
     }
 
     fun clearClientSearchQuery() {
-        onClientSearchQueryChange("")
+        _uiState.update { it.copy(clientSearchQuery = "") }
+    }
+
+    fun setFormClientId(clientId: String?) {
+        _uiState.update {
+            it.copy(selectedClientId = clientId?.trim()?.takeIf(String::isNotBlank))
+        }
+    }
+
+    fun selectClient(clientId: String) {
+        if (_uiState.value.clients.any { it.id == clientId }) {
+            setFormClientId(clientId)
+        }
+    }
+
+    fun clearSelectedClient() {
+        setFormClientId(null)
     }
 
     fun loadClients() {
@@ -223,6 +245,10 @@ class MotorcycleViewModel(
             _uiState.update { it.copy(operationMessage = validationError) }
             return
         }
+        validateClientReference(input.clientId)?.let { validationError ->
+            _uiState.update { it.copy(operationMessage = validationError) }
+            return
+        }
 
         workScope.launch {
             _uiState.update { it.copy(isSaving = true, operationMessage = null, errorMessage = null) }
@@ -251,6 +277,7 @@ class MotorcycleViewModel(
     }
 
     fun createMotorcycleInput(input: MotorcycleInput) {
+        val selectedClientId = _uiState.value.selectedClientId
         createMotorcycle(
             plate = input.plate,
             brand = input.brand,
@@ -258,7 +285,7 @@ class MotorcycleViewModel(
             yearText = input.yearText,
             color = input.color,
             engineCcText = input.engineCcText,
-            clientId = input.clientId,
+            clientId = selectedClientId,
             status = input.status,
             notes = input.notes
         )
@@ -273,6 +300,10 @@ class MotorcycleViewModel(
         }
         val input = MotorcycleInput.from(motorcycle)
         MotorcycleValidator.validate(input)?.let { validationError ->
+            _uiState.update { it.copy(operationMessage = validationError) }
+            return
+        }
+        validateClientReference(input.clientId)?.let { validationError ->
             _uiState.update { it.copy(operationMessage = validationError) }
             return
         }
@@ -303,12 +334,6 @@ class MotorcycleViewModel(
         }
     }
 
-    fun changeStatus(status: String) {
-        val motorcycle = _uiState.value.selectedMotorcycle ?: return
-        if (status !in MotorcycleStatus.values || status == motorcycle.status) return
-        updateMotorcycle(motorcycle.copy(status = status))
-    }
-
     fun consumeSavedMotorcycle() {
         _uiState.update { it.copy(savedMotorcycleId = null, operationMessage = null) }
     }
@@ -324,6 +349,15 @@ class MotorcycleViewModel(
         }
     }
 
+    private fun validateClientReference(clientId: String?): String? {
+        if (clientId == null || _uiState.value.clients.isEmpty()) return null
+        return if (_uiState.value.clients.any { it.id == clientId }) {
+            null
+        } else {
+            "Selecciona un propietario válido o elige Sin propietario."
+        }
+    }
+
     private fun MotorcycleUiState.withFilters(): MotorcycleUiState {
         val query = searchQuery.trim().lowercase(Locale.ROOT)
         val filtered = motorcycles.filter { motorcycle ->
@@ -334,7 +368,7 @@ class MotorcycleViewModel(
                 motorcycle.brand.orEmpty(),
                 motorcycle.model.orEmpty(),
                 owner?.name.orEmpty(),
-                owner?.cedula.orEmpty(),
+                owner?.document.orEmpty(),
                 owner?.phone.orEmpty()
             ).map { it.lowercase(Locale.ROOT) }
             val matchesQuery = query.isBlank() || query.split(Regex("\\s+")).all { token ->

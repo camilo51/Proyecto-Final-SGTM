@@ -32,9 +32,6 @@ fun UsersScreen(
     val state by viewModel.uiState.collectAsState()
     val orange = MaterialTheme.colorScheme.primary
 
-    var showDialog by remember { mutableStateOf(false) }
-    var selectedUser by remember { mutableStateOf<User?>(null) }
-
     AppTheme(darkTheme = true) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -76,9 +73,7 @@ fun UsersScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { 
-                            navController.navigate(AppRoutes.CreateUser)
-                        },
+                        onClick = { navController.navigate(AppRoutes.CreateUser) },
                         modifier = Modifier.weight(1.3f),
                         colors = ButtonDefaults.buttonColors(containerColor = orange),
                         shape = RoundedCornerShape(12.dp),
@@ -147,7 +142,9 @@ fun UsersScreen(
                             UserCard(
                                 user = user,
                                 onEdit = {
-                                    user.id?.let { navController.navigate(AppRoutes.editUser(it)) }
+                                    user.id?.let { id ->
+                                        navController.navigate(AppRoutes.editUser(id))
+                                    }
                                 },
                                 onDelete = { user.id?.let { viewModel.deleteUser(it) } }
                             )
@@ -158,115 +155,7 @@ fun UsersScreen(
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
-
-        // No dialog, now uses screen navigation
     }
-
-    // Reset dialog when saving completes successfully
-    LaunchedEffect(state.creationVersion, state.updateVersion) {
-        if (showDialog && !state.isSaving && state.operationMessage?.contains("correctamente") == true) {
-            showDialog = false
-            viewModel.clearOperationMessage()
-        }
-    }
-}
-
-@Composable
-private fun UserFormDialog(
-    user: User?,
-    onDismiss: () -> Unit,
-    onSave: (String, String, String?) -> Unit,
-    isSaving: Boolean,
-    operationMessage: String?
-) {
-    // Keep mapping compatible with existing viewModel: name <- username, avatar <- role
-    var username by remember { mutableStateOf(user?.name ?: "nombre_usuario") }
-    var email by remember { mutableStateOf(user?.email ?: "usuario@sgtm.test") }
-    var password by remember { mutableStateOf("secret1") }
-    var confirmPassword by remember { mutableStateOf("secret1") }
-    var role by remember { mutableStateOf(user?.avatar ?: "Administrador") }
-    var estado by remember { mutableStateOf("Activo") }
-
-    val roles = listOf("Administrador", "Técnico", "Recepción")
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (user == null) "Nuevo usuario" else "Editar usuario") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Usuario *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo electrónico *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Contraseña *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = { Text("Confirmar contraseña *") }, modifier = Modifier.fillMaxWidth())
-                if (password.length < 6) {
-                    Text("Mínimo 6 caracteres", color = MaterialTheme.colorScheme.error)
-                } else if (password != confirmPassword) {
-                    Text("Las contraseñas no coinciden", color = MaterialTheme.colorScheme.error)
-                }
-
-                // Role dropdown
-                var expandedRole by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = role,
-                        onValueChange = {},
-                        label = { Text("Rol *") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            IconButton(onClick = { expandedRole = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Seleccionar rol")
-                            }
-                        }
-                    )
-                    DropdownMenu(expanded = expandedRole, onDismissRequest = { expandedRole = false }) {
-                        roles.forEach { r ->
-                            DropdownMenuItem(text = { Text(r) }, onClick = { role = r; expandedRole = false })
-                        }
-                    }
-                }
-
-                // Estado dropdown
-                var expandedEstado by remember { mutableStateOf(false) }
-                val estados = listOf("Activo", "Inactivo")
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = estado,
-                        onValueChange = {},
-                        label = { Text("Estado") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            IconButton(onClick = { expandedEstado = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Seleccionar estado")
-                            }
-                        }
-                    )
-                    DropdownMenu(expanded = expandedEstado, onDismissRequest = { expandedEstado = false }) {
-                        estados.forEach { e ->
-                            DropdownMenuItem(text = { Text(e) }, onClick = { estado = e; expandedEstado = false })
-                        }
-                    }
-                }
-
-                operationMessage?.let {
-                    Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSave(username.trim(), email.trim(), role.takeIf { it.isNotBlank() }) },
-                enabled = !isSaving && username.isNotBlank() && email.isNotBlank() && password.length >= 6 && password == confirmPassword
-            ) {
-                if (isSaving) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                else Text("Guardar usuario")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Cancelar") }
-        }
-    )
 }
 
 @Composable
@@ -321,6 +210,14 @@ private fun UserCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.9f)
                     )
+                    user.role?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = orange,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         text = "ID: ${user.id ?: "—"}",
                         style = MaterialTheme.typography.bodySmall,

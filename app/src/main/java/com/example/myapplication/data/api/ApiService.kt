@@ -1,20 +1,24 @@
 package com.example.myapplication.data.api
 
 import com.example.myapplication.data.model.Appointment
+import com.example.myapplication.data.model.AuditLog
 import com.example.myapplication.data.model.Brand
 import com.example.myapplication.data.model.Client
+import com.example.myapplication.data.model.ClientRequest
+import com.example.myapplication.data.model.DeleteClientRequest
 import com.example.myapplication.data.model.Employee
 import com.example.myapplication.data.model.Invoice
+import com.example.myapplication.data.model.InvoiceRequest
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.data.model.Reminder
-import com.example.myapplication.data.model.Report
 import com.example.myapplication.data.model.User
 import com.example.myapplication.data.model.ForgotPasswordRequest
 import com.example.myapplication.data.model.ForgotPasswordResponse
 import com.example.myapplication.data.model.LoginRequest
 import com.example.myapplication.data.model.LoginResponse
 import com.example.myapplication.data.model.LogoutResponse
+import com.example.myapplication.data.model.ChangePasswordRequest
 import com.example.myapplication.data.model.RegisterRequest
 import com.example.myapplication.data.model.RegisterResponse
 import com.example.myapplication.data.model.ResetPasswordRequest
@@ -74,6 +78,14 @@ interface ApiService {
         @Body request: ResetPasswordRequest
     ): ResetPasswordResponse
 
+    @GET("auth/me")
+    suspend fun getCurrentUser(): ApiResponse<com.example.myapplication.data.model.UserDto>
+
+    @PUT("auth/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
+    ): ApiResponse<Any?>
+
 
     // =========================
     // USERS
@@ -85,12 +97,12 @@ interface ApiService {
     @GET("users/{id}")
     suspend fun getUser(
         @Path("id") id: String
-    ): ApiResponse<User>
+    ): User
 
     @POST("users")
     suspend fun createUser(
         @Body user: User
-    ): ApiResponse<User>
+    ): User
 
     @PUT("users/{id}")
     suspend fun updateUser(
@@ -101,7 +113,7 @@ interface ApiService {
     @DELETE("users/{id}")
     suspend fun deleteUser(
         @Path("id") id: String
-    ): ApiResponse<Unit>
+    )
 
 
     // =========================
@@ -109,7 +121,10 @@ interface ApiService {
     // =========================
 
     @GET("clients")
-    suspend fun getClients(): ApiResponse<List<Client>>
+    suspend fun getClients(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
+    ): ApiResponse<List<Client>>
 
     @GET("clients/{id}")
     suspend fun getClient(
@@ -118,19 +133,20 @@ interface ApiService {
 
     @POST("clients")
     suspend fun createClient(
-        @Body client: Client
+        @Body request: ClientRequest
     ): ApiResponse<Client>
 
     @PUT("clients/{id}")
     suspend fun updateClient(
         @Path("id") id: String,
-        @Body client: Client
+        @Body request: ClientRequest
     ): ApiResponse<Client>
 
-    @DELETE("clients/{id}")
+    @HTTP(method = "DELETE", path = "clients/{id}", hasBody = true)
     suspend fun deleteClient(
-        @Path("id") id: String
-    )
+        @Path("id") id: String,
+        @Body request: DeleteClientRequest
+    ): Response<Unit>
 
 
     // =========================
@@ -138,28 +154,32 @@ interface ApiService {
     // =========================
 
     @GET("employees")
-    suspend fun getEmployees(): ApiResponse<List<Employee>>
+    suspend fun getEmployees(
+        @Query("status") status: String = "Activo",
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
+    ): PaginatedApiResponse<Employee>
 
     @GET("employees/{id}")
     suspend fun getEmployee(
         @Path("id") id: String
-    ): ApiResponse<Employee>
+    ): Employee
 
     @POST("employees")
     suspend fun createEmployee(
         @Body employee: Employee
-    ): ApiResponse<Employee>
+    ): Employee
 
     @PUT("employees/{id}")
     suspend fun updateEmployee(
         @Path("id") id: String,
         @Body employee: Employee
-    ): ApiResponse<Employee>
+    ): Employee
 
     @DELETE("employees/{id}")
     suspend fun deleteEmployee(
         @Path("id") id: String
-    ): ApiResponse<Unit>
+    )
 
 
     // =========================
@@ -196,7 +216,11 @@ interface ApiService {
     // =========================
 
     @GET("motorcycles")
-    suspend fun getMotorcycles(): ApiResponse<List<Motorcycle>>
+    suspend fun getMotorcycles(
+        @Query("client_id") clientId: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
+    ): ApiResponse<List<Motorcycle>>
 
     @GET("motorcycles/{id}")
     suspend fun getMotorcycle(
@@ -205,7 +229,7 @@ interface ApiService {
 
     @POST("motorcycles")
     suspend fun createMotorcycle(
-        @Body motorcycle: Motorcycle
+        @Body motorcycle: JsonObject
     ): ApiResponse<Motorcycle>
 
     @PUT("motorcycles/{id}")
@@ -323,7 +347,10 @@ interface ApiService {
     // =========================
 
     @GET("orders")
-    suspend fun getOrders(): ApiResponse<List<Order>>
+    suspend fun getOrders(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
+    ): PaginatedApiResponse<Order>
 
     @GET("orders/{id}")
     suspend fun getOrder(
@@ -332,7 +359,13 @@ interface ApiService {
 
     @POST("orders")
     suspend fun createOrder(
-        @Body order: Order
+        @Body order: JsonObject
+    ): ApiResponse<Order>
+
+    @POST("orders/{id}/change-status")
+    suspend fun changeOrderStatus(
+        @Path("id") id: String,
+        @Body status: JsonObject
     ): ApiResponse<Order>
 
     @PUT("orders/{id}")
@@ -348,27 +381,57 @@ interface ApiService {
 
 
     // =========================
+    // AUDIT LOGS
+    // =========================
+
+    @GET("reports/audit-logs")
+    suspend fun getAuditLogs(
+        @Query("search") search: String? = null,
+        @Query("date_from") dateFrom: String? = null,
+        @Query("date_to") dateTo: String? = null,
+        @Query("user_id") userId: String? = null,
+        @Query("action") action: String? = null,
+        @Query("table_name") tableName: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): Response<PaginatedApiResponse<AuditLog>>
+
+    @GET("reports/audit-actions")
+    suspend fun getAuditActions(): Response<ApiResponse<List<String>>>
+
+    @GET("reports/audit-tables")
+    suspend fun getAuditTables(): Response<ApiResponse<List<String>>>
+
+
+    // =========================
     // INVOICES
     // =========================
 
     @GET("invoices")
-    suspend fun getInvoices(): List<Invoice>
+    suspend fun getInvoices(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 100
+    ): PaginatedApiResponse<Invoice>
 
     @GET("invoices/{id}")
     suspend fun getInvoice(
         @Path("id") id: String
-    ): Invoice
+    ): ApiResponse<Invoice>
 
     @POST("invoices")
     suspend fun createInvoice(
-        @Body invoice: Invoice
-    ): Invoice
+        @Body invoice: InvoiceRequest
+    ): ApiResponse<Invoice>
 
-    @PUT("invoices/{id}")
-    suspend fun updateInvoice(
-        @Path("id") id: String,
-        @Body invoice: Invoice
-    ): Invoice
+    @PUT("invoices/{id}/pay")
+    suspend fun payInvoice(
+        @Path("id") id: String
+    ): ApiResponse<Invoice>
+
+    @PUT("invoices/{id}/cancel")
+    suspend fun cancelInvoice(
+        @Path("id") id: String
+    ): ApiResponse<Invoice>
 
     @DELETE("invoices/{id}")
     suspend fun deleteInvoice(
@@ -404,16 +467,4 @@ interface ApiService {
         @Path("id") id: String
     )
 
-
-    // =========================
-    // REPORTS
-    // =========================
-
-    @GET("reports")
-    suspend fun getReports(): List<Report>
-
-    @GET("reports/{id}")
-    suspend fun getReport(
-        @Path("id") id: String
-    ): Report
 }

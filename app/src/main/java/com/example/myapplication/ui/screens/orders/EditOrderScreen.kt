@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
+import com.example.myapplication.ui.screens.BackNavigationLink
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 @Composable
@@ -49,7 +50,7 @@ fun EditOrderScreen(
     } else if (order == null) {
         Column(Modifier.padding(contentPadding).padding(16.dp)) {
             Text(state.detailErrorMessage ?: "No se encontró la orden", color = MaterialTheme.colorScheme.error)
-            Button(onClick = onBack) { Text("Volver") }
+            BackNavigationLink(onClick = onBack)
         }
     } else {
         key(order.id) {
@@ -70,7 +71,6 @@ private fun EditOrderForm(
     var clientId by rememberSaveable(order.id) { mutableStateOf(order.clientId) }
     var motorcycleId by rememberSaveable(order.id) { mutableStateOf(order.motorcycleId) }
     var description by rememberSaveable(order.id) { mutableStateOf(order.description) }
-    var status by rememberSaveable(order.id) { mutableStateOf(order.status) }
     var total by rememberSaveable(order.id) { mutableStateOf(order.total.toString()) }
 
     val state by viewModel.uiState.collectAsState()
@@ -83,31 +83,31 @@ private fun EditOrderForm(
         modifier = Modifier.padding(contentPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        BackNavigationLink(onClick = onBack, enabled = !isSaving)
         Text("Editar orden #${order.id}", style = MaterialTheme.typography.headlineSmall)
-        OrderReferenceDropdown("Cliente", clientId, clientOptions, !isSaving) { clientId = it }
+        OrderReferenceDropdown(
+            label = "Cliente",
+            selectedId = clientId,
+            options = clientOptions,
+            enabled = !isSaving,
+            autocomplete = true,
+            onSelected = { clientId = it }
+        )
         OrderReferenceDropdown("Motocicleta", motorcycleId, motorcycleOptions, !isSaving) { motorcycleId = it }
         OutlinedTextField(
             value = description,
             onValueChange = { if (it.length <= 2000) description = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Descripción") },
+            label = { Text("Descripción") },
             supportingText = { Text("${description.length}/2000") },
             minLines = 4,
-            enabled = !isSaving
-        )
-        OutlinedTextField(
-            value = status,
-            onValueChange = { status = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Estado") },
-            singleLine = true,
             enabled = !isSaving
         )
         OutlinedTextField(
             value = total,
             onValueChange = { total = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Total") },
+            label = { Text("Total") },
             singleLine = true,
             enabled = !isSaving
         )
@@ -119,7 +119,6 @@ private fun EditOrderForm(
                         clientId = clientId,
                         motorcycleId = motorcycleId,
                         description = description,
-                        status = status,
                         total = total.toDoubleOrNull() ?: -1.0
                     )
                 )
@@ -128,9 +127,6 @@ private fun EditOrderForm(
             enabled = !isSaving
         ) {
             if (isSaving) CircularProgressIndicator() else Text("Guardar cambios")
-        }
-        Button(onClick = onBack, enabled = !isSaving, modifier = Modifier.fillMaxWidth()) {
-            Text("Cancelar")
         }
     }
 }

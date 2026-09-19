@@ -33,9 +33,6 @@ fun EmployeesScreen(
     val state by viewModel.uiState.collectAsState()
     val orange = MaterialTheme.colorScheme.primary
 
-    var showDialog by remember { mutableStateOf(false) }
-    var selectedEmployee by remember { mutableStateOf<Employee?>(null) }
-
     AppTheme(darkTheme = true) {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -77,9 +74,7 @@ fun EmployeesScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { 
-                            navController.navigate(AppRoutes.CreateEmployee)
-                        },
+                        onClick = { navController.navigate(AppRoutes.CreateEmployee) },
                         modifier = Modifier.weight(1.3f),
                         colors = ButtonDefaults.buttonColors(containerColor = orange),
                         shape = RoundedCornerShape(12.dp),
@@ -148,7 +143,9 @@ fun EmployeesScreen(
                             EmployeeCard(
                                 employee = employee,
                                 onEdit = {
-                                    employee.id?.let { navController.navigate(AppRoutes.editEmployee(it)) }
+                                    employee.id?.let { id ->
+                                        navController.navigate(AppRoutes.editEmployee(id))
+                                    }
                                 },
                                 onDelete = { employee.id?.let { viewModel.deleteEmployee(it) } }
                             )
@@ -159,157 +156,7 @@ fun EmployeesScreen(
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
-
-        if (showDialog) {
-            EmployeeFormDialog(
-                employee = selectedEmployee,
-                onDismiss = { 
-                    showDialog = false
-                    viewModel.clearOperationMessage()
-                },
-                onSave = { name, email, phone, role ->
-                    if (selectedEmployee == null) {
-                        viewModel.createEmployee(name, email, phone, role)
-                    } else {
-                        viewModel.updateEmployee(selectedEmployee!!.copy(name = name, email = email, phone = phone, role = role))
-                    }
-                },
-                isSaving = state.isSaving,
-                operationMessage = state.operationMessage
-            )
-        }
     }
-
-    // Reset dialog when saving completes successfully
-    LaunchedEffect(state.creationVersion, state.updateVersion) {
-        if (showDialog && !state.isSaving && state.operationMessage?.contains("correctamente") == true) {
-            showDialog = false
-            viewModel.clearOperationMessage()
-        }
-    }
-}
-
-@Composable
-private fun EmployeeFormDialog(
-    employee: Employee?,
-    onDismiss: () -> Unit,
-    onSave: (String, String, String, String) -> Unit,
-    isSaving: Boolean,
-    operationMessage: String?
-) {
-    // Map UI fields into existing model: name = "$nombre $apellido", role = especialidad
-    var tipoDocumento by remember { mutableStateOf("CC") }
-    var documento by remember { mutableStateOf("80123456") }
-    var nombre by remember { mutableStateOf(employee?.name?.split(" ")?.firstOrNull() ?: "Jorge") }
-    var apellido by remember { mutableStateOf(employee?.name?.split(" ")?.getOrNull(1) ?: "Pérez") }
-    var email by remember { mutableStateOf(employee?.email ?: "empleado@sgtm.test") }
-    var phone by remember { mutableStateOf(employee?.phone ?: "3001112233") }
-    var especialidad by remember { mutableStateOf(employee?.role ?: "Mecánica general") }
-    var tarifaDiaria by remember { mutableStateOf("80000") }
-    var comision by remember { mutableStateOf("60") }
-    var estado by remember { mutableStateOf("Activo") }
-    var fechaContratacion by remember { mutableStateOf("18/09/2026") }
-
-    val tipos = listOf("CC", "CE", "TI")
-    val specialties = listOf("Mecánica general", "Mecánica básica", "Mecánica eléctrica")
-    val estados = listOf("Activo", "Inactivo")
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (employee == null) "Nuevo empleado" else "Editar empleado") },
-        text = {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 420.dp)
-                .verticalScroll(rememberScrollState())
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Documento
-                    var expandedTipo by remember { mutableStateOf(false) }
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = tipoDocumento,
-                            onValueChange = {},
-                            label = { Text("Tipo de documento *") },
-                            readOnly = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = {
-                                IconButton(onClick = { expandedTipo = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
-                            }
-                        )
-                        DropdownMenu(expanded = expandedTipo, onDismissRequest = { expandedTipo = false }) {
-                            tipos.forEach { t -> DropdownMenuItem(text = { Text(t) }, onClick = { tipoDocumento = t; expandedTipo = false }) }
-                        }
-                    }
-                    OutlinedTextField(value = documento, onValueChange = { documento = it }, label = { Text("Documento *") }, modifier = Modifier.fillMaxWidth())
-
-                    // Nombre / Apellido
-                    OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = apellido, onValueChange = { apellido = it }, label = { Text("Apellido *") }, modifier = Modifier.fillMaxWidth())
-
-                    // Teléfono / Correo
-                    OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono *") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo electrónico") }, modifier = Modifier.fillMaxWidth())
-
-                    // Especialidad
-                    var expandedSpec by remember { mutableStateOf(false) }
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = especialidad,
-                            onValueChange = {},
-                            label = { Text("Especialidad *") },
-                            readOnly = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = { IconButton(onClick = { expandedSpec = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
-                        )
-                        DropdownMenu(expanded = expandedSpec, onDismissRequest = { expandedSpec = false }) {
-                            specialties.forEach { s -> DropdownMenuItem(text = { Text(s) }, onClick = { especialidad = s; expandedSpec = false }) }
-                        }
-                    }
-
-                    // Tarifa diaria / Comisión
-                    OutlinedTextField(value = tarifaDiaria, onValueChange = { tarifaDiaria = it }, label = { Text("Tarifa diaria (COP)") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = comision, onValueChange = { comision = it }, label = { Text("Comisión (%)") }, modifier = Modifier.fillMaxWidth())
-
-                    // Estado / Fecha de contratación
-                    var expandedEstado by remember { mutableStateOf(false) }
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = estado,
-                            onValueChange = {},
-                            label = { Text("Estado") },
-                            readOnly = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = { IconButton(onClick = { expandedEstado = true }) { Icon(Icons.Default.ArrowDropDown, contentDescription = null) } }
-                        )
-                        DropdownMenu(expanded = expandedEstado, onDismissRequest = { expandedEstado = false }) {
-                            estados.forEach { e -> DropdownMenuItem(text = { Text(e) }, onClick = { estado = e; expandedEstado = false }) }
-                        }
-                    }
-                    OutlinedTextField(value = fechaContratacion, onValueChange = { fechaContratacion = it }, label = { Text("Fecha de contratación *") }, modifier = Modifier.fillMaxWidth())
-
-                    operationMessage?.let {
-                        Text(it, color = if (it.contains("correctamente")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-        },
-
-        confirmButton = {
-            Button(
-                onClick = { onSave("${nombre.trim()} ${apellido.trim()}".trim(), email.trim(), phone.trim(), especialidad) },
-                enabled = !isSaving && nombre.isNotBlank() && apellido.isNotBlank()
-            ) {
-                if (isSaving) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                else Text("Guardar empleado")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSaving) { Text("Cancelar") }
-        }
-    )
 }
 
 @Composable
@@ -360,7 +207,7 @@ private fun EmployeeCard(
                         color = Color.White
                     )
                     Text(
-                        text = employee.role,
+                        text = employee.role ?: "",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.White.copy(alpha = 0.9f)
                     )

@@ -18,8 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.screens.BackLink
+import com.example.myapplication.ui.screens.FormHeader
 import com.example.myapplication.ui.viewmodel.inventory.EditInventoryViewModel
 
 @Composable
@@ -28,6 +30,8 @@ fun EditInventoryScreen(
     navController: NavController,
     userName: String?,
     onLogout: () -> Unit,
+    currentUser: UserDto? = null,
+    onOpenProfile: () -> Unit = {},
     viewModel: EditInventoryViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -38,7 +42,15 @@ fun EditInventoryScreen(
             navController.popBackStack()
         }
     }
-    AppScaffold("Editar repuesto", navController, isAdmin = true, userName = userName, onLogout = onLogout) { padding ->
+    AppScaffold(
+        "Editar repuesto",
+        navController,
+        isAdmin = true,
+        userName = userName,
+        currentUser = currentUser,
+        onOpenProfile = onOpenProfile,
+        onLogout = onLogout
+    ) { padding ->
         if (state.isLoading) {
             CircularProgressIndicator(modifier = Modifier.padding(padding))
         } else {
@@ -46,9 +58,11 @@ fun EditInventoryScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                BackLink(onClick = { navController.popBackStack() })
-                Text("Editar repuesto", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("El estado no se edita: el backend lo recalcula.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                FormHeader(
+                    title = "Editar repuesto",
+                    subtitle = "El estado no se edita: el backend lo recalcula.",
+                    onBack = { navController.popBackStack() }
+                )
                 InventoryFormFields(
                     state = state,
                     submitLabel = "Guardar cambios",

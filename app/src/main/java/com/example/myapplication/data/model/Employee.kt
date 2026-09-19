@@ -8,14 +8,23 @@ data class Employee(
     val id: String? = null,
 
     @SerializedName("name")
-    val name: String,
+    val name: String = "",
+
+    @SerializedName(value = "last_name", alternate = ["lastName"])
+    val lastName: String = "",
+
+    @SerializedName("specialty")
+    val specialty: String = "",
 
     @SerializedName("email")
-    val email: String,
+    val email: String? = null,
 
     @SerializedName("phone")
-    val phone: String,
+    val phone: String = "",
 
     @SerializedName("role")
-    val role: String
+    val role: String? = null,
+
+    @SerializedName("status")
+    val status: String = "Activo"
 )

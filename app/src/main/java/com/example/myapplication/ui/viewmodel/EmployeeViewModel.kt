@@ -136,7 +136,7 @@ class EmployeeViewModel : ViewModel() {
             return
         }
 
-        val normalizedEmail = employee.email.trim()
+        val normalizedEmail = employee.email?.trim().orEmpty()
         if (normalizedEmail.isNotBlank() && !EMAIL_PATTERN.matches(normalizedEmail)) {
             _uiState.update {
                 it.copy(operationMessage = "Ingresa un correo válido")
@@ -151,7 +151,7 @@ class EmployeeViewModel : ViewModel() {
                 name = employee.name.trim(),
                 email = normalizedEmail,
                 phone = employee.phone.trim(),
-                role = employee.role.trim()
+                role = employee.role?.trim()
             )
         }
 
@@ -190,9 +190,9 @@ class EmployeeViewModel : ViewModel() {
             employees.filter { employee ->
                 listOf(
                     employee.name,
-                    employee.email,
+                    employee.email.orEmpty(),
                     employee.phone,
-                    employee.role,
+                    employee.role.orEmpty(),
                     employee.id.orEmpty()
                 )
                     .any { value -> value.lowercase(Locale.ROOT).contains(normalizedQuery) }

@@ -7,11 +7,14 @@ data class User(
     @SerializedName("id")
     val id: String? = null,
 
-    @SerializedName("name")
+    @SerializedName(value = "username", alternate = ["name"])
     val name: String,
 
     @SerializedName("email")
     val email: String,
+
+    @SerializedName("role")
+    val role: String? = null,
 
     @SerializedName("avatar")
     val avatar: String? = null
