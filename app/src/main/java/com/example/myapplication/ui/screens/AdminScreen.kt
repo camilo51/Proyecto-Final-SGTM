@@ -2,6 +2,8 @@ package com.example.myapplication.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,12 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.ImeAction
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.navigation.AppRoutes
@@ -41,6 +45,7 @@ fun AdminScreen(
     navController: NavController,
     isAdmin: Boolean,
     onLogout: () -> Unit,
+    onSearchClients: (String) -> Unit,
     currentUser: UserDto? = null,
     onOpenProfile: () -> Unit = {},
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -55,7 +60,12 @@ fun AdminScreen(
         currentUser = currentUser,
         onOpenProfile = onOpenProfile,
         onLogout = onLogout,
-        appBar = { onOpenDrawer -> TopSearchBar(onOpenDrawer) }
+        appBar = { onOpenDrawer ->
+            DashboardSearchBar(
+                onOpenDrawer = onOpenDrawer,
+                onSearchClients = onSearchClients
+            )
+        }
     ) { padding ->
         Surface(
             modifier = Modifier
@@ -86,8 +96,17 @@ fun AdminScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopSearchBar(onOpenDrawer: () -> Unit) {
+fun DashboardSearchBar(
+    onOpenDrawer: () -> Unit,
+    onSearchClients: (String) -> Unit
+) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    val submitSearch: () -> Unit = {
+        val query = searchQuery.trim()
+        if (query.isNotBlank()) {
+            onSearchClients(query)
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -106,9 +125,28 @@ private fun TopSearchBar(onOpenDrawer: () -> Unit) {
             onValueChange = { searchQuery = it },
             modifier = Modifier
                 .weight(1f)
-                .height(52.dp),
+                .height(52.dp)
+                .testTag("dashboard-client-search"),
             placeholder = { Text("Buscar clientes...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            leadingIcon = {
+                IconButton(onClick = submitSearch) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Buscar clientes",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
+                    }
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
             shape = CircleShape,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
