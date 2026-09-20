@@ -138,7 +138,13 @@ fun MainApp() {
                 onOpenProfile = onOpenProfile,
                 navController = navController,
                 isAdmin = uiState.isAdmin,
-                onLogout = onLogout
+                onLogout = onLogout,
+                onSearchClients = { query ->
+                    clientViewModel.onSearchQueryChange(query)
+                    navController.navigate(AppRoutes.Clients) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
         composable("inventory") {
