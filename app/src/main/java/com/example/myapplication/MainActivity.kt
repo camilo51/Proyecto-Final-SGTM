@@ -114,6 +114,13 @@ fun MainApp() {
         }
     }
 
+    val openClientsSearch: (String) -> Unit = { query ->
+        clientViewModel.onSearchQueryChange(query)
+        navController.navigate(AppRoutes.Clients) {
+            launchSingleTop = true
+        }
+    }
+
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
             LoginScreen(
@@ -139,11 +146,18 @@ fun MainApp() {
                 navController = navController,
                 isAdmin = uiState.isAdmin,
                 onLogout = onLogout,
-                onSearchClients = { query ->
-                    clientViewModel.onSearchQueryChange(query)
-                    navController.navigate(AppRoutes.Clients) {
-                        launchSingleTop = true
-                    }
+                onSearchClients = openClientsSearch,
+                onSelectClient = { client ->
+                    val query = client.id?.takeIf(String::isNotBlank)
+                        ?: listOf(
+                            client.name.orEmpty(),
+                            client.lastName.orEmpty(),
+                            client.document.orEmpty(),
+                            client.phone.orEmpty()
+                        )
+                            .joinToString(" ")
+                            .trim()
+                    openClientsSearch(query)
                 }
             )
         }

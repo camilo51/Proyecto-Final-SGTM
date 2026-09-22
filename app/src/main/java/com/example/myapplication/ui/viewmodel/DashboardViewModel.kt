@@ -3,6 +3,7 @@ package com.example.myapplication.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.api.RetrofitClient
+import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.common.NetworkResult
 import com.example.myapplication.data.repository.ClientRepository
 import com.example.myapplication.data.repository.OrderRepository
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class DashboardUiState(
+    val clients: List<Client> = emptyList(),
+    val clientSearchQuery: String = "",
     val totalClients: Int = 0,
     val totalMotos: Int = 0,
     val activeOrders: Int = 0,
@@ -26,7 +29,15 @@ data class DashboardUiState(
     val salesAnnual: Double = 0.0,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
-)
+) {
+    val clientSuggestions: List<Client>
+        get() = if (clientSearchQuery.isBlank()) {
+            emptyList()
+        } else {
+            filterClientsForQuery(clients, clientSearchQuery)
+                .take(CLIENT_SEARCH_SUGGESTION_LIMIT)
+        }
+}
 
 class DashboardViewModel(
     private val inventoryRepository: InventoryRepository = InventoryRepositoryImpl(),
@@ -46,6 +57,10 @@ class DashboardViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val clients = clientRepository.getClients()
+                _uiState.value = _uiState.value.copy(
+                    clients = clients,
+                    totalClients = clients.size
+                )
                 val orders = orderRepository.getOrders()
                 val inventoryAlerts = when (val result = inventoryRepository.getAlerts()) {
                     is NetworkResult.Success -> result.data
@@ -53,6 +68,7 @@ class DashboardViewModel(
                 }
 
                 _uiState.value = _uiState.value.copy(
+                    clients = clients,
                     totalClients = clients.size,
                     activeOrders = orders.count { order ->
                         order.status.equals("activa", ignoreCase = true) ||
@@ -73,5 +89,9 @@ class DashboardViewModel(
                 )
             }
         }
+    }
+
+    fun onClientSearchQueryChange(query: String) {
+        _uiState.value = _uiState.value.copy(clientSearchQuery = query)
     }
 }

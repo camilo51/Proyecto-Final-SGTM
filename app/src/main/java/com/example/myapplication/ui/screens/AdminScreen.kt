@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -28,9 +30,12 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.window.PopupProperties
+import com.example.myapplication.data.model.Client
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.navigation.AppRoutes
@@ -46,6 +51,7 @@ fun AdminScreen(
     isAdmin: Boolean,
     onLogout: () -> Unit,
     onSearchClients: (String) -> Unit,
+    onSelectClient: (Client) -> Unit,
     currentUser: UserDto? = null,
     onOpenProfile: () -> Unit = {},
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -62,8 +68,12 @@ fun AdminScreen(
         onLogout = onLogout,
         appBar = { onOpenDrawer ->
             DashboardSearchBar(
+                searchQuery = uiState.clientSearchQuery,
+                suggestions = uiState.clientSuggestions,
                 onOpenDrawer = onOpenDrawer,
-                onSearchClients = onSearchClients
+                onQueryChange = viewModel::onClientSearchQueryChange,
+                onSearchClients = onSearchClients,
+                onSelectClient = onSelectClient
             )
         }
     ) { padding ->
@@ -97,14 +107,21 @@ fun AdminScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardSearchBar(
+    searchQuery: String,
+    suggestions: List<Client>,
     onOpenDrawer: () -> Unit,
-    onSearchClients: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    onSearchClients: (String) -> Unit,
+    onSelectClient: (Client) -> Unit
 ) {
-    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var suggestionsExpanded by rememberSaveable {
+        mutableStateOf(searchQuery.isNotBlank() && suggestions.isNotEmpty())
+    }
     val submitSearch: () -> Unit = {
         val query = searchQuery.trim()
         if (query.isNotBlank()) {
             onSearchClients(query)
+            suggestionsExpanded = false
         }
     }
 
@@ -120,50 +137,103 @@ fun DashboardSearchBar(
             Icon(Icons.Default.Menu, contentDescription = "Menú", tint = MaterialTheme.colorScheme.primary)
         }
 
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier
-                .weight(1f)
-                .height(52.dp)
-                .testTag("dashboard-client-search"),
-            placeholder = { Text("Buscar clientes...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = {
-                IconButton(onClick = submitSearch) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = "Buscar clientes",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(modifier = Modifier.weight(1f)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { value ->
+                    onQueryChange(value)
+                    suggestionsExpanded = value.isNotBlank()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("dashboard-client-search"),
+                placeholder = { Text("Buscar clientes...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                leadingIcon = {
+                    IconButton(onClick = submitSearch) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Buscar clientes",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            onQueryChange("")
+                            suggestionsExpanded = false
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
+                        }
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
+                shape = CircleShape,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                ),
+                singleLine = true
+            )
+
+            DropdownMenu(
+                expanded = suggestionsExpanded && suggestions.isNotEmpty(),
+                onDismissRequest = { suggestionsExpanded = false },
+                modifier = Modifier.fillMaxWidth(),
+                properties = PopupProperties(focusable = false)
+            ) {
+                suggestions.forEach { client ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(
+                                    text = dashboardClientDisplayName(client),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                dashboardClientSecondaryText(client)?.let { detail ->
+                                    Text(
+                                        text = detail,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        onClick = {
+                            suggestionsExpanded = false
+                            onSelectClient(client)
+                        }
                     )
                 }
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
-                    }
-                }
-            },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
-            shape = CircleShape,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-            ),
-            singleLine = true
-        )
+            }
+        }
 
         IconButton(onClick = { /* Notificaciones */ }) {
             Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
+
+private fun dashboardClientDisplayName(client: Client): String = listOf(
+    client.name.orEmpty(),
+    client.lastName.orEmpty()
+).joinToString(" ").trim().ifBlank { "Cliente ${client.id.orEmpty()}" }
+
+private fun dashboardClientSecondaryText(client: Client): String? = listOf(
+    client.document?.takeIf(String::isNotBlank)?.let { "Doc. $it" },
+    client.phone?.takeIf(String::isNotBlank)?.let { "Tel. $it" }
+).filterNotNull().joinToString(" · ").takeIf(String::isNotBlank)
 
 @Composable
 private fun DashboardHeader(userName: String?, navController: NavController) {
