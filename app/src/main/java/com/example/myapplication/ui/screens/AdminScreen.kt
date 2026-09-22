@@ -28,13 +28,16 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.viewmodel.DashboardViewModel
+import com.example.myapplication.ui.viewmodel.GlobalSearchResult
 import java.util.Calendar
 import java.util.Locale
 
@@ -45,7 +48,7 @@ fun AdminScreen(
     navController: NavController,
     isAdmin: Boolean,
     onLogout: () -> Unit,
-    onSearchClients: (String) -> Unit,
+    onSelectSearchResult: (GlobalSearchResult) -> Unit,
     currentUser: UserDto? = null,
     onOpenProfile: () -> Unit = {},
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
@@ -62,8 +65,13 @@ fun AdminScreen(
         onLogout = onLogout,
         appBar = { onOpenDrawer ->
             DashboardSearchBar(
+                searchQuery = uiState.searchQuery,
+                suggestions = uiState.searchResults,
+                isLoading = uiState.isSearchLoading,
                 onOpenDrawer = onOpenDrawer,
-                onSearchClients = onSearchClients
+                onQueryChange = viewModel::onSearchQueryChange,
+                onSearch = { uiState.searchResults.firstOrNull()?.let(onSelectSearchResult) },
+                onSelectResult = onSelectSearchResult
             )
         }
     ) { padding ->
@@ -97,15 +105,20 @@ fun AdminScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardSearchBar(
+    searchQuery: String,
+    suggestions: List<GlobalSearchResult>,
+    isLoading: Boolean,
     onOpenDrawer: () -> Unit,
-    onSearchClients: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onSelectResult: (GlobalSearchResult) -> Unit
 ) {
-    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var suggestionsExpanded by rememberSaveable {
+        mutableStateOf(searchQuery.isNotBlank() && suggestions.isNotEmpty())
+    }
     val submitSearch: () -> Unit = {
-        val query = searchQuery.trim()
-        if (query.isNotBlank()) {
-            onSearchClients(query)
-        }
+        onSearch()
+        suggestionsExpanded = false
     }
 
     Row(
@@ -120,44 +133,101 @@ fun DashboardSearchBar(
             Icon(Icons.Default.Menu, contentDescription = "Menú", tint = MaterialTheme.colorScheme.primary)
         }
 
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier
-                .weight(1f)
-                .height(52.dp)
-                .testTag("dashboard-client-search"),
-            placeholder = { Text("Buscar clientes...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = {
-                IconButton(onClick = submitSearch) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = "Buscar clientes",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+        Box(modifier = Modifier.weight(1f)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { value ->
+                    onQueryChange(value)
+                    suggestionsExpanded = value.isNotBlank()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("global-search"),
+                placeholder = { Text("Buscar en todos los módulos...", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                leadingIcon = {
+                    IconButton(onClick = submitSearch) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Buscar en todos los módulos",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                trailingIcon = {
+                    if (isLoading && searchQuery.isNotBlank()) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            onQueryChange("")
+                            suggestionsExpanded = false
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
+                        }
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
+                shape = CircleShape,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                ),
+                singleLine = true
+            )
+
+            DropdownMenu(
+                expanded = suggestionsExpanded && searchQuery.isNotBlank(),
+                onDismissRequest = { suggestionsExpanded = false },
+                modifier = Modifier.fillMaxWidth(),
+                properties = PopupProperties(focusable = false)
+            ) {
+                when {
+                    isLoading -> DropdownMenuItem(
+                        text = { Text("Cargando información…") },
+                        onClick = { suggestionsExpanded = false },
+                        enabled = false
                     )
-                }
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
+                    suggestions.isEmpty() -> DropdownMenuItem(
+                        text = { Text("No se encontraron resultados") },
+                        onClick = { suggestionsExpanded = false },
+                        enabled = false
+                    )
+                    else -> suggestions.forEach { result ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(
+                                        text = result.title,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = listOf(result.module.label, result.subtitle.orEmpty())
+                                            .filter(String::isNotBlank)
+                                            .joinToString(" · "),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            onClick = {
+                                suggestionsExpanded = false
+                                onSelectResult(result)
+                            }
+                        )
                     }
                 }
-            },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { submitSearch() }),
-            shape = CircleShape,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-            ),
-            singleLine = true
-        )
+            }
+        }
 
         IconButton(onClick = { /* Notificaciones */ }) {
             Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = MaterialTheme.colorScheme.onSurface)

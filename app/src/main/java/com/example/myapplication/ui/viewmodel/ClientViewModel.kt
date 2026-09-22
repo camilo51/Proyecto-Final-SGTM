@@ -15,7 +15,6 @@ import com.google.gson.JsonParseException
 import com.google.gson.reflect.TypeToken
 import java.io.IOException
 import java.net.SocketTimeoutException
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -401,20 +400,7 @@ class ClientViewModel(
     )
 
     private fun ClientUiState.withFilters(): ClientUiState {
-        val normalizedQuery = searchQuery.trim().lowercase(Locale.ROOT)
-        val filtered = if (normalizedQuery.isBlank()) {
-            clients
-        } else {
-            clients.filter { client ->
-                listOf(
-                    client.name.orEmpty(),
-                    client.lastName.orEmpty(),
-                    client.document.orEmpty(),
-                    client.phone.orEmpty(),
-                    client.id.orEmpty()
-                ).any { value -> value.lowercase(Locale.ROOT).contains(normalizedQuery) }
-            }
-        }
+        val filtered = filterClientsForQuery(clients, searchQuery)
 
         return copy(
             filteredClients = filtered,

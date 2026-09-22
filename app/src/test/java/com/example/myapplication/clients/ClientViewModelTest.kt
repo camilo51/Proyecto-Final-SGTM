@@ -39,6 +39,22 @@ class ClientViewModelTest {
     }
 
     @Test
+    fun search_matchesFullNameWithoutAccentDifferences() {
+        val repository = FakeClientRepository(
+            values = listOf(
+                client("1", "Ana", lastName = "Gómez"),
+                client("2", "Carlos", lastName = "Pérez")
+            )
+        )
+        val viewModel = viewModel(repository)
+
+        viewModel.loadClients()
+        viewModel.onSearchQueryChange("ana gomez")
+
+        assertEquals(listOf("1"), viewModel.uiState.value.filteredClients.map { it.id })
+    }
+
+    @Test
     fun pagination_limitsVisibleClientsAndChangesPage() {
         val repository = FakeClientRepository(
             values = (1..25).map { id -> client(id.toString(), "Cliente $id") }
