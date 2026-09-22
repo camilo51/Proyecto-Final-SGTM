@@ -64,6 +64,8 @@ import com.example.myapplication.ui.viewmodel.InvoiceViewModel
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 import com.example.myapplication.ui.viewmodel.ProfileViewModel
 import com.example.myapplication.ui.viewmodel.UserViewModel
+import com.example.myapplication.ui.viewmodel.GlobalSearchModule
+import com.example.myapplication.ui.viewmodel.GlobalSearchResult
 
 class MainActivity : ComponentActivity() {
 
@@ -114,10 +116,30 @@ fun MainApp() {
         }
     }
 
-    val openClientsSearch: (String) -> Unit = { query ->
-        clientViewModel.onSearchQueryChange(query)
-        navController.navigate(AppRoutes.Clients) {
-            launchSingleTop = true
+    val openGlobalSearchResult: (GlobalSearchResult) -> Unit = { result ->
+        when (result.module) {
+            GlobalSearchModule.CLIENTS -> {
+                clientViewModel.onSearchQueryChange(result.id)
+                navController.navigate(AppRoutes.Clients) { launchSingleTop = true }
+            }
+            GlobalSearchModule.MOTORCYCLES -> navController.navigate(AppRoutes.motorcycleDetail(result.id))
+            GlobalSearchModule.ORDERS -> navController.navigate(AppRoutes.orderDetail(result.id))
+            GlobalSearchModule.INVOICES -> navController.navigate(AppRoutes.invoiceDetail(result.id))
+            GlobalSearchModule.INVENTORY -> {
+                result.id.toLongOrNull()?.let { id ->
+                    navController.navigate("inventory/detail/$id")
+                } ?: navController.navigate(AppRoutes.Inventory) { launchSingleTop = true }
+            }
+            GlobalSearchModule.EMPLOYEES -> {
+                employeeViewModel.onSearchQueryChange(result.title)
+                navController.navigate(AppRoutes.Employees) { launchSingleTop = true }
+            }
+            GlobalSearchModule.USERS -> {
+                userViewModel.onSearchQueryChange(result.title)
+                navController.navigate(AppRoutes.Users) { launchSingleTop = true }
+            }
+            GlobalSearchModule.REPORTS -> navController.navigate(AppRoutes.Reports) { launchSingleTop = true }
+            GlobalSearchModule.AUDIT -> navController.navigate(AppRoutes.Audit) { launchSingleTop = true }
         }
     }
 
@@ -146,19 +168,7 @@ fun MainApp() {
                 navController = navController,
                 isAdmin = uiState.isAdmin,
                 onLogout = onLogout,
-                onSearchClients = openClientsSearch,
-                onSelectClient = { client ->
-                    val query = client.id?.takeIf(String::isNotBlank)
-                        ?: listOf(
-                            client.name.orEmpty(),
-                            client.lastName.orEmpty(),
-                            client.document.orEmpty(),
-                            client.phone.orEmpty()
-                        )
-                            .joinToString(" ")
-                            .trim()
-                    openClientsSearch(query)
-                }
+                onSelectSearchResult = openGlobalSearchResult
             )
         }
         composable("inventory") {

@@ -1,6 +1,7 @@
 package com.example.myapplication.dashboard
 
-import com.example.myapplication.data.model.Client
+import com.example.myapplication.ui.viewmodel.GlobalSearchModule
+import com.example.myapplication.ui.viewmodel.GlobalSearchResult
 import com.example.myapplication.ui.viewmodel.DashboardUiState
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -8,15 +9,16 @@ import org.junit.Test
 class DashboardViewModelTest {
 
     @Test
-    fun clientSuggestions_matchNameDocumentAndPhone() {
+    fun globalSearchResults_matchRecordsFromDifferentModules() {
         val state = DashboardUiState(
-            clients = listOf(
-                Client(id = "1", name = "Ana", lastName = "Gómez", document = "12345678"),
-                Client(id = "2", name = "Carlos", phone = "3001112233")
+            searchIndex = listOf(
+                GlobalSearchResult(GlobalSearchModule.CLIENTS, "1", "Ana Gómez", "Doc. 12345678"),
+                GlobalSearchResult(GlobalSearchModule.MOTORCYCLES, "2", "ABC123", "Yamaha FZ"),
+                GlobalSearchResult(GlobalSearchModule.INVENTORY, "3", "Filtro de aceite", "Inventario")
             ),
-            clientSearchQuery = "gomez"
+            searchQuery = "yamaha"
         )
 
-        assertEquals(listOf("1"), state.clientSuggestions.map { it.id })
+        assertEquals(listOf(GlobalSearchModule.MOTORCYCLES), state.searchResults.map { it.module })
     }
 }
