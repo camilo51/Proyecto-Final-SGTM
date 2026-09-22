@@ -36,8 +36,6 @@ import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,10 +52,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -250,7 +245,13 @@ fun AppScaffold(
                         MenuButton(onClick = { scope.launch { drawerState.open() } })
                     },
                     actions = {
-                        NotificationButton()
+                        NotificationButton(
+                            onClick = {
+                                navController.navigate(AppRoutes.Notifications) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        )
                         actions()
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -291,49 +292,21 @@ private fun MenuButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun NotificationButton() {
-    var expanded by remember { mutableStateOf(false) }
+fun NotificationButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
 
-    Box {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
-            contentAlignment = Alignment.Center
-        ) {
-            IconButton(onClick = { expanded = true }) {
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Ver notificaciones"
-                )
-            }
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = {
-                    Column {
-                        Text(
-                            text = "Notificaciones",
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "No tienes novedades por ahora",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                leadingIcon = {
-                    Icon(Icons.Filled.Notifications, contentDescription = null)
-                },
-                onClick = { expanded = false }
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+        contentAlignment = Alignment.Center
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(
+                Icons.Filled.Notifications,
+                contentDescription = "Abrir notificaciones"
             )
         }
     }

@@ -7,7 +7,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,7 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -46,6 +44,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.ui.screens.BackNavigationLink
+import com.example.myapplication.ui.screens.OperationMessage
 import com.example.myapplication.data.model.Invoice
 import com.example.myapplication.ui.screens.inventory.asReadableDate
 import com.example.myapplication.ui.screens.orders.formatOrderMoney
@@ -79,14 +79,7 @@ fun InvoiceDetailScreen(
         modifier = Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.clickable(onClick = onBack).padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            androidx.compose.material3.Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-            Text("Volver", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-        }
+        BackNavigationLink(onClick = onBack)
         when {
             state.isLoadingDetail || invoice == null && state.errorMessage == null -> CircularProgressIndicator(modifier = Modifier.padding(top = 32.dp))
             invoice == null -> DetailMessage(state.errorMessage ?: "No fue posible cargar la factura", viewModel::loadInvoice, invoiceId)
@@ -112,7 +105,9 @@ fun InvoiceDetailScreen(
                 if (!invoice.isCancelled()) {
                     OutlinedButton(onClick = { confirmCancel = true }, modifier = Modifier.fillMaxWidth(), enabled = !state.isSaving) { Text("Anular factura") }
                 }
-                state.operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+                state.operationMessage?.let { message ->
+                    OperationMessage(message)
+                }
             }
         }
         Spacer(Modifier.height(20.dp))

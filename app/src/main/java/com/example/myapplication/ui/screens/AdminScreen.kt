@@ -71,7 +71,12 @@ fun AdminScreen(
                 onOpenDrawer = onOpenDrawer,
                 onQueryChange = viewModel::onSearchQueryChange,
                 onSearch = { uiState.searchResults.firstOrNull()?.let(onSelectSearchResult) },
-                onSelectResult = onSelectSearchResult
+                onSelectResult = onSelectSearchResult,
+                onOpenNotifications = {
+                    navController.navigate(AppRoutes.Notifications) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     ) { padding ->
@@ -111,7 +116,8 @@ fun DashboardSearchBar(
     onOpenDrawer: () -> Unit,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
-    onSelectResult: (GlobalSearchResult) -> Unit
+    onSelectResult: (GlobalSearchResult) -> Unit,
+    onOpenNotifications: () -> Unit = {}
 ) {
     var suggestionsExpanded by rememberSaveable {
         mutableStateOf(searchQuery.isNotBlank() && suggestions.isNotEmpty())
@@ -229,9 +235,7 @@ fun DashboardSearchBar(
             }
         }
 
-        IconButton(onClick = { /* Notificaciones */ }) {
-            Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = MaterialTheme.colorScheme.onSurface)
-        }
+        NotificationButton(onClick = onOpenNotifications)
     }
 }
 

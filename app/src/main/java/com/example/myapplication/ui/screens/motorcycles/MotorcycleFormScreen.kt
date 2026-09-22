@@ -47,6 +47,7 @@ import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.UserDto
 import com.example.myapplication.ui.screens.AppScaffold
 import com.example.myapplication.ui.screens.BackNavigationLink
+import com.example.myapplication.ui.screens.OperationMessage
 import com.example.myapplication.ui.theme.AppOutlinedTextFieldColors
 import com.example.myapplication.ui.viewmodel.MotorcycleStatus
 import com.example.myapplication.ui.viewmodel.MotorcycleInput
@@ -331,7 +332,7 @@ private fun MotorcycleForm(
         )
 
         state.operationMessage?.let { message ->
-            Text(message, color = MaterialTheme.colorScheme.error)
+            OperationMessage(message)
         }
         Button(
             onClick = {

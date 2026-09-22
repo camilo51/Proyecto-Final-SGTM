@@ -53,6 +53,7 @@ import com.example.myapplication.ui.screens.orders.EditOrderScreen
 import com.example.myapplication.ui.screens.orders.OrderDetailScreen
 import com.example.myapplication.ui.screens.orders.OrdersListScreen
 import com.example.myapplication.ui.screens.audit.AuditScreen
+import com.example.myapplication.ui.screens.notifications.NotificationsScreen
 import com.example.myapplication.ui.screens.reports.ReportsScreen
 import com.example.myapplication.ui.navigation.AppRoutes
 import com.example.myapplication.ui.theme.AppTheme
@@ -252,6 +253,24 @@ fun MainApp() {
                     text = "Rol detectado: ${uiState.user?.role ?: "No definido"}",
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+        composable(AppRoutes.Notifications) {
+            AppScaffold(
+                title = "Notificaciones",
+                navController = navController,
+                isAdmin = uiState.isAdmin,
+                userName = uiState.user?.name,
+                currentUser = uiState.user,
+                onOpenProfile = onOpenProfile,
+                onLogout = onLogout
+            ) { padding ->
+                NotificationsScreen(
+                    contentPadding = padding,
+                    onBack = navController::popBackStack,
+                    onOpenOrder = { orderId -> navController.navigate(AppRoutes.orderDetail(orderId)) },
+                    onOpenInventory = { inventoryId -> navController.navigate("inventory/detail/$inventoryId") }
                 )
             }
         }
