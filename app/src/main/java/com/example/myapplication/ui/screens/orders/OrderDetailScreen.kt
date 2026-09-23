@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.ui.screens.BackNavigationLink
+import com.example.myapplication.ui.screens.OperationMessage
 import com.example.myapplication.ui.viewmodel.OrderStatus
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
@@ -180,7 +181,9 @@ private fun OrderDetailContent(
             discount = order.discount ?: 0.0,
             total = order.total
         )
-        operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+        operationMessage?.let { message ->
+            OperationMessage(message)
+        }
 
         Button(onClick = onEdit, enabled = !isSaving && !isUpdatingStatus && !isDeleting, modifier = Modifier.fillMaxWidth()) {
             Text("Editar orden")

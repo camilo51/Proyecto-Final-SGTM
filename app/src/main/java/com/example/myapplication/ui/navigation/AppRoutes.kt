@@ -7,6 +7,7 @@ object AppRoutes {
     const val Admin = "admin"
     const val Profile = "profile"
     const val Home = "home"
+    const val Notifications = "notifications"
     const val Clients = "clients"
     const val Users = "users"
     const val CreateUser = "users/create"

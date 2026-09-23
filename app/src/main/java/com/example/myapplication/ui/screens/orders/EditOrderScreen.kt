@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.data.model.Order
 import com.example.myapplication.ui.screens.BackNavigationLink
+import com.example.myapplication.ui.screens.OperationMessage
 import com.example.myapplication.ui.viewmodel.OrderViewModel
 
 @Composable
@@ -111,7 +112,9 @@ private fun EditOrderForm(
             singleLine = true,
             enabled = !isSaving
         )
-        operationMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        operationMessage?.let { message ->
+            OperationMessage(message)
+        }
         Button(
             onClick = {
                 viewModel.updateOrder(

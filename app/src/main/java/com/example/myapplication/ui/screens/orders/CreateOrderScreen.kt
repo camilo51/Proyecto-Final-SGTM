@@ -31,6 +31,7 @@ import com.example.myapplication.data.model.Client
 import com.example.myapplication.data.model.Motorcycle
 import com.example.myapplication.ui.screens.BackNavigationLink
 import com.example.myapplication.ui.screens.FormHeader
+import com.example.myapplication.ui.screens.OperationMessage
 import com.example.myapplication.ui.screens.FormPrimaryButton
 import com.example.myapplication.ui.viewmodel.OrderValidator
 import com.example.myapplication.ui.viewmodel.OrderViewModel
@@ -203,7 +204,7 @@ fun CreateOrderScreen(
         )
 
         state.operationMessage?.let { message ->
-            Text(message, color = MaterialTheme.colorScheme.error)
+            OperationMessage(message)
         }
 
         FormPrimaryButton(

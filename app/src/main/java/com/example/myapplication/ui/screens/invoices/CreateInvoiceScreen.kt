@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.screens.FormHeader
+import com.example.myapplication.ui.screens.OperationMessage
 import com.example.myapplication.ui.screens.FormPrimaryButton
 import com.example.myapplication.ui.screens.orders.OrderDropdownOption
 import com.example.myapplication.ui.screens.orders.OrderReferenceDropdown
@@ -126,7 +127,7 @@ fun CreateInvoiceScreen(
             colors = AppOutlinedTextFieldColors()
         )
         state.operationMessage?.let { message ->
-            Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            OperationMessage(message)
         }
         FormPrimaryButton(
             text = "Emitir factura",
